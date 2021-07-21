@@ -1,4 +1,4 @@
 data/
 .vscode/
 .devcontainer/
-*pyc
+*.pyc

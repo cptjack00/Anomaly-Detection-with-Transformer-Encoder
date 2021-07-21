@@ -25,4 +25,4 @@ class CustomDataset(Dataset):
         # readings_normalised = (data['readings'] - train_m) / train_std
 
         # slice training set into rolling windows
-        self.rolling_windows = np.lib.stride_tricks.sliding_window_view(data['training'], self.config['l_win'], axis=0, writeable=True)
+        self.rolling_windows = np.lib.stride_tricks.sliding_window_view(data['training'], self.config['l_win'], axis=0, writeable=True).transpose(0, 2, 1)

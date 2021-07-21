@@ -38,16 +38,16 @@ def test_model():
 def test_pos_enc():
     dataloader = test_dataloader()
     for i, batch in enumerate(dataloader):
-        plt.figure(figsize=(15, 5))
+        plt.figure(figsize=(16, 5))
         pe = PositionalEncoding(16, 0)
         print("PE: ", pe.pe.size())
-        y = pe.forward(batch['input'])
-        plt.plot(np.arange(500), y[0, 2:5, :].transpose(0, 1).data.numpy())
+        y = pe.forward(torch.zeros_like(batch['input']))
+        plt.plot(np.arange(config['l_win']), y[0, :, 2:5].data.numpy())
         plt.legend(["dim %d" % p for p in [2, 3, 4]])
         plt.savefig('test.png')
         break
 
 
 if __name__ == '__main__':
-    test_model()
-    # test_pos_enc()
+    # test_model()
+    test_pos_enc()

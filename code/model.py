@@ -1,6 +1,5 @@
 import copy
 import math
-from numpy import positive
 
 import torch
 import torch.nn as nn
@@ -42,21 +41,6 @@ class Encoder(nn.Module):
         for layer in self.layers:
             x = layer(x, mask)
         return self.norm(x)
-
-
-class LayerNorm(nn.Module):
-    "Construct a layernorm module (See citation for details)."
-
-    def __init__(self, features, eps=1e-6):
-        super(LayerNorm, self).__init__()
-        self.a_2 = nn.Parameter(torch.ones(features))
-        self.b_2 = nn.Parameter(torch.zeros(features))
-        self.eps = eps
-
-    def forward(self, x):
-        mean = x.mean(-1, keepdim=True)
-        std = x.std(-1, keepdim=True)
-        return self.a_2 * (x - mean) / (std + self.eps) + self.b_2
 
 
 class SublayerConnection(nn.Module):
@@ -157,19 +141,16 @@ class PositionalEncoding(nn.Module):
 
         pe = torch.zeros(max_len, d_model)
         position = torch.arange(0, max_len).unsqueeze(1)
-        print("POSITION: ", position.size())
         div_term = torch.exp(torch.arange(0, d_model, 2)
                              * (-math.log(10000.0) / d_model))
-        print("DIV_TERM: ", div_term.size())
-                             
+
         pe[:, 0::2] = torch.sin(div_term * position)
         pe[:, 1::2] = torch.cos(div_term * position)
-        pe = pe.transpose(0, 1)
         pe = pe.unsqueeze(0)
         self.register_buffer('pe', pe)
 
     def forward(self, x):
-        x = x + Variable(self.pe[:, :, :x.size(-1)], requires_grad=False)
+        x = x + Variable(self.pe[:, :x.size(1), :], requires_grad=False)
         return self.dropout(x)
 
 
