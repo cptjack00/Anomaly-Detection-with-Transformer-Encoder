@@ -1,6 +1,6 @@
 import numpy as np
 import torch
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import Dataset
 
 
 class CustomDataset(Dataset):
@@ -21,11 +21,6 @@ class CustomDataset(Dataset):
     def load_dataset(self, dataset):
         data_dir = '../data/scada/'
         data = np.load(data_dir + dataset + '.npz')
-
-        # normalise the dataset by training set mean and std
-        # train_m = data['train_m']
-        # train_std = data['train_std']
-        # readings_normalised = (data['readings'] - train_m) / train_std
 
         # slice training set into rolling windows
         self.rolling_windows = np.lib.stride_tricks.sliding_window_view(

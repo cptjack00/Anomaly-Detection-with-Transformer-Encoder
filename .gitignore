@@ -2,3 +2,4 @@ data/
 .vscode/
 .devcontainer/
 *.pyc
+models/
