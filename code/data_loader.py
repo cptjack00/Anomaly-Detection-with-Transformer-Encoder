@@ -1,14 +1,23 @@
 import numpy as np
+from torch.utils.data import Dataset, DataLoader
 
-
-class DataGenerator():
+class CustomDataset(Dataset):
     def __init__(self, config):
+        super().__init__()
         self.config = config
-        # load data here: generate 3 state variables: train_set, val_set and test_set
-        self.load_NAB_dataset(self.config['dataset'])
+        self.load_dataset(self.config['dataset'])
+    
+    def __len__(self):
+        return self.rolling_windows.shape[0]
+    
+    def __getitem__(self, index):
+        target = self.rolling_windows[index, :, self.config['pre_mask']:self.config['post_mask']]
+        input = self.rolling_windows[index, :, :]
+        sample = {"input": input, "target": target}
+        return sample
 
     def load_dataset(self, dataset):
-        data_dir = '../datasets/scada1/'
+        data_dir = '../data/scada/'
         data = np.load(data_dir + dataset + '.npz')
 
         # normalise the dataset by training set mean and std
@@ -17,7 +26,4 @@ class DataGenerator():
         # readings_normalised = (data['readings'] - train_m) / train_std
 
         # slice training set into rolling windows
-        rolling_windows = np.lib.stride_tricks.sliding_window_view(data['training'], self.config['l_win'], axis=0, writable=False)
-        return rolling_windows
-
-
+        self.rolling_windows = np.lib.stride_tricks.sliding_window_view(data['training'], self.config['l_win'], axis=0, writeable=True)
