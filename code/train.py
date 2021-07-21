@@ -14,11 +14,9 @@ def create_dataloader(dataset, config):
 
 def loss_backprop(criterion, out, targets):
     assert out.size(1) == targets.size(1)
-    total = 0.0
     loss = criterion(out, targets)
-    total += loss
     loss.backward()
-    return total
+    return loss
 
 
 def train_epoch(train_iter, model, criterion, opt, min_train_loss):

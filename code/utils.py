@@ -3,8 +3,6 @@ import json
 import os
 from datetime import datetime
 
-import torch
-from torch.autograd import Variable
 
 def get_config_from_json(json_file):
     """

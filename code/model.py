@@ -163,7 +163,7 @@ def make_model(N, d_model, l_win, d_ff=0, h=8, dropout=0.1):
     position = PositionalEncoding(d_model, dropout, l_win)
     model = AnomalyModel(
         Encoder(EncoderLayer(d_model, c(attn), c(ff), dropout), N),
-        nn.Sequential(c(position))
+        nn.Sequential(position)
     )
 
     for p in model.parameters():
