@@ -83,7 +83,7 @@ def attention(query, key, value, mask=None, dropout=0.0):
     d_k = query.size(-1)
     scores = torch.matmul(query, key.transpose(-2, -1)) / math.sqrt(d_k)
     if mask is not None:
-        scores = scores.masked_fill(mask == 0, float('-inf'))
+        scores = scores.masked_fill(mask == 0, -1e9)
     p_attn = F.softmax(scores, dim=-1)
     p_attn = F.dropout(p_attn, p=dropout)
     return torch.matmul(p_attn, value), p_attn
@@ -113,7 +113,7 @@ class MultiHeadAttention(nn.Module):
         # 2) Apply attention on all the projected vectors in batch
         x, self.attn = attention(query, key, value, mask=mask, dropout=self.p)
         # 3) "Concat" using a view and apply a final linear
-        x = x.transpose(1, 2).continguous().view(
+        x = x.transpose(1, 2).contiguous().view(
             nbatches, -1, self.h * self.d_k)
         return self.linears[-1](x)
 
@@ -168,5 +168,5 @@ def make_model(N, d_model, l_win, d_ff=0, h=8, dropout=0.1):
 
     for p in model.parameters():
         if p.dim() > 1:
-            nn.init.xavier_uniform(p)
+            nn.init.xavier_uniform_(p)
     return model

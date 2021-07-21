@@ -3,7 +3,7 @@ from data_loader import CustomDataset
 import torch
 import numpy as np
 from torch.autograd import Variable
-from train import create_dataloader, window_mask
+from train import create_dataloader, config
 from model import make_model
 import matplotlib.pyplot as plt
 from model import PositionalEncoding
@@ -20,17 +20,19 @@ def test_dataloader():
 
 def test_dataset():
     dataset = CustomDataset(config)
-    print(dataset[0])
+    dataset.mask_input()
+    print(dataset[0]['input'].shape)
+    print(dataset[0]['input'][199: 205, :])
     return dataset
 
 
 def test_model():
     model = make_model(
         N=6, d_model=16, l_win=config['l_win'], d_ff=128, h=8, dropout=0.2)
+    model.float()
     dataloader = test_dataloader()
-    src_mask = window_mask(config['l_win'], config)
     for i, batch in enumerate(dataloader):
-        out = model(batch['input'], src_mask)
+        out = model(batch['input'].float(), src_mask=None)
         print(out)
         break
 
@@ -49,5 +51,7 @@ def test_pos_enc():
 
 
 if __name__ == '__main__':
-    # test_model()
-    test_pos_enc()
+    test_model()
+    # test_dataset()
+    # test_pos_enc()
+
