@@ -84,10 +84,6 @@ def get_args():
     #     '-n', '--num-client',
     #     default=1,
     #     help='The number of clients participating in Federated Learning')
-    argparser.add_argument(
-        '-d', '--dataset',
-        default='None',
-        help="Dataset")
     args = argparser.parse_args()
     return args
 
@@ -118,10 +114,10 @@ class NoamOpt:
             (self.model_size ** (-0.5) *
             min(step ** (-0.5), step * self.warmup**(-1.5)))
         
-    def get_std_opt(model):
-        return NoamOpt(model.src_embed[0].d_model, 2, 4000,
-        torch.optim.Adam(model.parameters(),
-            lr=0, betas=(0.9, 0.98), eps=1e-9))
+def get_std_opt(model):
+    return NoamOpt(model.src_embed[0].d_model, 2, 4000,
+    torch.optim.Adam(model.parameters(),
+        lr=0, betas=(0.9, 0.98), eps=1e-9))
 
 
 def loss_backprop(generator, criterion, out, targets, normalize, bp=True):

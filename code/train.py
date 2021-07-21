@@ -2,6 +2,7 @@ import torch
 import torch
 import numpy as np
 from torch.utils.data.dataloader import DataLoader
+from data_loader import CustomDataset
 from model import make_model
 from utils import NoamOpt, loss_backprop
 
@@ -14,3 +15,4 @@ def window_mask(size, config):
 
 def create_dataloader(dataset, config):
     return DataLoader(dataset, batch_size=config['batch_size'], shuffle=config['shuffle'], num_workers=config['dataloader_num_workers'])
+

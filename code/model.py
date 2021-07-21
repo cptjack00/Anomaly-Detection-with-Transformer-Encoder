@@ -35,7 +35,7 @@ class Encoder(nn.Module):
     def __init__(self, layer, N):
         super().__init__()
         self.layers = clones(layer, N)
-        self.norm = LayerNorm(layer.size()[1:])
+        self.norm = LayerNorm(layer.size)
 
     def forward(self, x, mask):
         "Pass the input (and mask) through each layer in turn"
@@ -99,7 +99,7 @@ def attention(query, key, value, mask=None, dropout=0.0):
     d_k = query.size(-1)
     scores = torch.matmul(query, key.transpose(-2, -1)) / math.sqrt(d_k)
     if mask is not None:
-        scores = scores.masked_fill(mask == 0, -1e9)
+        scores = scores.masked_fill(mask == 0, float('-inf'))
     p_attn = F.softmax(scores, dim=-1)
     p_attn = F.dropout(p_attn, p=dropout)
     return torch.matmul(p_attn, value), p_attn
@@ -151,31 +151,35 @@ class PositionwiseFeedForward(nn.Module):
 class PositionalEncoding(nn.Module):
     """ Implement the PE function. """
 
-    def __init__(self, d_model, dropout, l_win):
+    def __init__(self, d_model, dropout, max_len=5000):
         super().__init__()
         self.dropout = nn.Dropout(p=dropout)
 
-        pe = torch.zeros(l_win, d_model)
-        position = torch.arange(0, l_win).unsqueeze(1)
+        pe = torch.zeros(max_len, d_model)
+        position = torch.arange(0, max_len).unsqueeze(1)
+        print("POSITION: ", position.size())
         div_term = torch.exp(torch.arange(0, d_model, 2)
                              * (-math.log(10000.0) / d_model))
-        pe[:, 0::2] = torch.sin(position * div_term)
-        pe[:, 1::2] = torch.cos(position * div_term)
+        print("DIV_TERM: ", div_term.size())
+                             
+        pe[:, 0::2] = torch.sin(div_term * position)
+        pe[:, 1::2] = torch.cos(div_term * position)
+        pe = pe.transpose(0, 1)
         pe = pe.unsqueeze(0)
         self.register_buffer('pe', pe)
 
     def forward(self, x):
-        x = x + Variable(self.pe, requires_grad=False)
+        x = x + Variable(self.pe[:, :, :x.size(-1)], requires_grad=False)
         return self.dropout(x)
 
 
-def make_model(N, d_model, d_ff=0, h=8, dropout=0.1):
+def make_model(N, d_model, l_win, d_ff=0, h=8, dropout=0.1):
     if (d_ff == 0):
         d_ff = d_model * 4
     c = copy.deepcopy
     attn = MultiHeadAttention(h, d_model, dropout)
     ff = PositionwiseFeedForward(d_model, d_ff, dropout)
-    position = PositionalEncoding(d_model, dropout)
+    position = PositionalEncoding(d_model, dropout, l_win)
     model = AnomalyModel(
         Encoder(EncoderLayer(d_model, c(attn), c(ff), dropout), N),
         nn.Sequential(c(position))
