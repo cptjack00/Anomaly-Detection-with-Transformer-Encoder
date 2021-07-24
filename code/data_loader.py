@@ -17,7 +17,11 @@ class CustomDataset(Dataset):
         return self.rolling_windows.shape[0]
 
     def __getitem__(self, index):
-        inp = target = self.rolling_windows[index, :, :]
+        if self.train:
+            inp = target = self.rolling_windows[index, :, :]
+        else:
+            inp = self.rolling_windows[index, :, :]
+            target = self.rolling_windows[index, self.config['pre_mask']:self.config['post_mask'], :]
         sample = {"input": inp, "target": target}
         return sample
 
