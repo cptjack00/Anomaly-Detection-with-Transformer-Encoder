@@ -27,16 +27,16 @@ class CustomDataset(Dataset):
 
     def load_dataset(self, dataset):
         data_dir = '../data/scada/'
-        data = np.load(data_dir + dataset + '.npz')
+        self.data = np.load(data_dir + dataset + '.npz')
 
         # slice training set into rolling windows
         if self.train:
             self.rolling_windows = np.lib.stride_tricks.sliding_window_view(
-                data['training'], self.config['l_win'], axis=0, writeable=True
+                self.data['training'], self.config['l_win'], axis=0, writeable=True
             ).transpose(0, 2, 1)
         else:
             self.rolling_windows = np.lib.stride_tricks.sliding_window_view(
-                data['test'], self.config['l_win'], axis=0, writeable=True
+                self.data['test'], self.config['l_win'], axis=0, writeable=True
             ).transpose(0, 2, 1)
 
     # def _create_window_mask(self):

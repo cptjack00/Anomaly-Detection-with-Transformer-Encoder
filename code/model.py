@@ -11,13 +11,15 @@ from torch.nn.modules.normalization import LayerNorm
 
 
 class AnomalyModel(nn.Module):
-    def __init__(self, encoder, src_embed):
+    def __init__(self, encoder, src_embed, linear):
         super().__init__()
         self.encoder = encoder
         self.src_embed = src_embed
+        self.linear = linear
 
     def forward(self, src, src_mask):
-        output = self.encoder(self.src_embed(src), src_mask)
+        output = F.relu(self.linear(
+            self.encoder(self.src_embed(src), src_mask)))
         return output
 
 
@@ -162,14 +164,12 @@ def make_model(N, d_model, l_win, d_ff=0, h=8, dropout=0.1):
     ff = PositionwiseFeedForward(d_model, d_ff, dropout)
     position = PositionalEncoding(d_model, dropout, l_win)
     final_linear = nn.Linear(d_model, d_model)
-    model = nn.ReLU(
-                final_linear(
-                    AnomalyModel(
-                        Encoder(EncoderLayer(d_model, c(attn), c(ff), dropout), N),
-                        nn.Sequential(position)
-                    )
-                )
-            )
+    model = AnomalyModel(
+        Encoder(EncoderLayer(
+            d_model, c(attn), c(ff), dropout), N),
+        nn.Sequential(position),
+        final_linear
+    )
 
     for p in model.parameters():
         if p.dim() > 1:
