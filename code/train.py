@@ -3,7 +3,7 @@ from torch.utils.data.dataloader import DataLoader
 from data_loader import CustomDataset
 from model import make_model
 
-config = {'dataset': 'scada1_1', 'l_win': 200, 'pre_mask': 80, 'post_mask': 80,
+config = {'dataset': 'scada1_1', 'l_win': 200, 'pre_mask': 80, 'post_mask': 120,
           'batch_size': 32, 'shuffle': True, 'dataloader_num_workers': 4, 'num_epoch': 50, 'model_path': '../models/'}
 
 
