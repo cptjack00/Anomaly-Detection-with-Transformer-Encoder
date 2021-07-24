@@ -161,10 +161,15 @@ def make_model(N, d_model, l_win, d_ff=0, h=8, dropout=0.1):
     attn = MultiHeadAttention(h, d_model, dropout)
     ff = PositionwiseFeedForward(d_model, d_ff, dropout)
     position = PositionalEncoding(d_model, dropout, l_win)
-    model = AnomalyModel(
-        Encoder(EncoderLayer(d_model, c(attn), c(ff), dropout), N),
-        nn.Sequential(position)
-    )
+    final_linear = nn.Linear(d_model, d_model)
+    model = nn.ReLU(
+                final_linear(
+                    AnomalyModel(
+                        Encoder(EncoderLayer(d_model, c(attn), c(ff), dropout), N),
+                        nn.Sequential(position)
+                    )
+                )
+            )
 
     for p in model.parameters():
         if p.dim() > 1:
