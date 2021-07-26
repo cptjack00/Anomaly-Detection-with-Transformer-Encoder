@@ -1,10 +1,10 @@
 import torch
-from torch.utils.data.dataloader import DataLoader
+from torch.utils.data.dataloader import DataLoader, T
 from data_loader import CustomDataset
 from model import make_model
 
 config = {'dataset': 'scada1_1', 'l_win': 200, 'pre_mask': 80, 'post_mask': 120,
-          'batch_size': 32, 'shuffle': True, 'dataloader_num_workers': 4, 'num_epoch': 50, 'model_path': '../models/'}
+          'batch_size': 64, 'shuffle': True, 'dataloader_num_workers': 10, 'num_epoch': 100, 'model_path': '../models/'}
 
 
 def create_dataloader(dataset, config):
@@ -25,7 +25,10 @@ def create_mask(config):
     return mask
 
 
-def train_epoch(train_iter, model, criterion, mask, opt, min_train_loss):
+min_train_loss = float('inf')
+best_model = None
+def train_epoch(train_iter, model, criterion, mask, opt, epoch):
+    global min_train_loss, best_model
     model.train()
     for i, batch in enumerate(train_iter):
         src = batch['input'].float()
@@ -47,7 +50,6 @@ def train_epoch(train_iter, model, criterion, mask, opt, min_train_loss):
         return best_model
 
 if __name__ == '__main__':
-    min_train_loss = float('inf')
     dataset = CustomDataset(config)
     dataloader = create_dataloader(dataset, config)
     mask = create_mask(config)
@@ -57,4 +59,4 @@ if __name__ == '__main__':
     model_opt = torch.optim.Adam(model.parameters())
     criterion = torch.nn.MSELoss()
     for epoch in range(config['num_epoch']):
-        train_epoch(dataloader, model, criterion, mask, model_opt, min_train_loss)
+        train_epoch(dataloader, model, criterion, mask, model_opt, epoch)
