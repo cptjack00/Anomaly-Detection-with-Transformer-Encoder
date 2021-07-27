@@ -1,0 +1,13 @@
+{
+	"experiment": "SCADA1_1_CEN",
+	"data_dir": "scada",
+	"dataset": "scada1_1",
+	"l_win": 200,
+	"pre_mask": 80,
+	"post_mask": 120,
+	"batch_size": 64,
+	"shuffle": 1,
+	"dataloader_num_workers": 10,
+	"num_epoch": 50,
+	"load_dir": "default"
+}

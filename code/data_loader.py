@@ -26,7 +26,7 @@ class CustomDataset(Dataset):
         return sample
 
     def load_dataset(self, dataset):
-        data_dir = '../data/scada/'
+        data_dir = '../data/{}/'.format(self.config['data_dir'])
         self.data = np.load(data_dir + dataset + '.npz')
 
         # slice training set into rolling windows
