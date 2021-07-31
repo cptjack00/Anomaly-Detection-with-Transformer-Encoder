@@ -1,5 +1,4 @@
 import torch
-import os
 from utils import process_config, create_dirs, get_args, save_config
 from torch.utils.data.dataloader import DataLoader, T
 from data_loader import CustomDataset

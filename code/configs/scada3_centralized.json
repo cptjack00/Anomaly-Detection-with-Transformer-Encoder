@@ -1,7 +1,7 @@
 {
-    "experiment": "SCADA1_1_CEN",
-    "data_dir": "scada",
-    "dataset": "scada1_1",
+    "experiment": "SCADA3_CEN",
+    "data_dir": "scada3",
+    "dataset": "scada3",
     "num_stacks": 6,
     "d_model": 16,
     "d_ff": 128,
@@ -13,6 +13,6 @@
     "batch_size": 64,
     "shuffle": 1,
     "dataloader_num_workers": 10,
-    "num_epoch": 50,
+    "num_epoch": 100,
     "load_dir": "default"
 }
