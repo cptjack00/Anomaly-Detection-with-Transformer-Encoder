@@ -22,7 +22,8 @@ class CustomDataset(Dataset):
             inp = target = self.rolling_windows[index, :, :]
         else:
             inp = self.rolling_windows[index, :, :]
-            target = self.rolling_windows[index, self.config['pre_mask']:self.config['post_mask'], :]
+            target = self.rolling_windows[index,
+                                          self.config['pre_mask']:self.config['post_mask'], :]
         sample = {"input": inp, "target": target}
         return sample
 

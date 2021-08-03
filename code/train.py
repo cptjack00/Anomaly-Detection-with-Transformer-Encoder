@@ -4,6 +4,7 @@ from torch.utils.data.dataloader import DataLoader, T
 from data_loader import CustomDataset
 from models import make_transformer_model, make_autoencoder_model
 
+device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 def create_dataloader(dataset, config):
     return DataLoader(dataset, batch_size=config['batch_size'], shuffle=bool(config['shuffle']), num_workers=config['dataloader_num_workers'])
@@ -32,10 +33,14 @@ best_trans_model = None
 def trans_train_epoch(train_iter, model, autoencoder, criterion, mask, opt, epoch, config):
     global min_trans_loss, best_trans_model
     model.train()
+    model.to(device)
+    autoencoder.to(device)
     for i, batch in enumerate(train_iter):
         src = batch['input'].float()
+        src.to(device)
         src = autoencoder(src)
         trg = batch['target'].float()
+        trg.to(device)
         trg = autoencoder(src)
         # the words we are trying to predict
         out = model(src, src_mask=mask)
@@ -63,9 +68,12 @@ best_auto_model = None
 def autoencoder_train_epoch(train_iter, model, criterion, opt, epoch, config):
     global min_auto_loss, best_auto_model
     model.train()
+    model.to(device)
     for i, batch in enumerate(train_iter):
         src = batch['input'].float()
+        src.to(device)
         trg = batch['target'].float()
+        trg.to(device)
         out = model(src)
         opt.zero_grad()
         loss = loss_backprop(criterion, out, trg)
@@ -111,7 +119,8 @@ def main():
     trans_model = make_transformer_model(
         N=6, d_model=dataset.rolling_windows.shape[-1], l_win=config['l_win'], d_ff=128, h=1, dropout=0.1)
     trans_model.float()
-    best_auto_model = autoencoder_model.load_state_dict(torch.load(config['model_path'] + config['best_auto_model']))
+    best_auto_model = autoencoder_model.load_state_dict(
+        torch.load(config['model_path'] + config['best_auto_model']))
     for epoch in range(config['trans_num_epoch']):
         config['best_trans_model'] = trans_train_epoch(
             dataloader, trans_model, best_auto_model, criterion, mask, model_opt, epoch, config)

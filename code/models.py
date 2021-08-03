@@ -154,7 +154,8 @@ class PositionalEncoding(nn.Module):
     def forward(self, x):
         x = x + Variable(self.pe[:, :x.size(1), :], requires_grad=False)
         return self.dropout(x)
-    
+
+
 class Encoder(nn.Module):
     def __init__(self, seq_len, d_model, dropout=0.1):
         super().__init__()
@@ -167,13 +168,14 @@ class Encoder(nn.Module):
         self.flatten = nn.Flatten()
         self.linears = nn.ModuleList([linear1, linear2, linear3])
         self.dropout = dropout
-    
+
     def forward(self, x):
         x = self.flatten(x)
         for i, l in enumerate(self.linears):
             x = F.relu(l(x))
             x = nn.Dropout(p=self.dropout)(x)
         return x
+
 
 class Decoder(nn.Module):
     def __init__(self, seq_len, d_model, dropout=0.1):
@@ -187,13 +189,14 @@ class Decoder(nn.Module):
         self.linears = nn.ModuleList([linear1, linear2, linear3])
         self.dropout = dropout
         self.unflatten = nn.Unflatten(1, (seq_len, d_model))
-    
+
     def forward(self, x):
         for i, l in enumerate(self.linears):
             x = F.relu(l(x))
             x = nn.Dropout(p=self.dropout)(x)
         x = self.unflatten(x)
         return x
+
 
 class Autoencoder(nn.Module):
     def __init__(self, encoder, decoder):

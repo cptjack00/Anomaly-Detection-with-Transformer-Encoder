@@ -20,7 +20,7 @@ dataset = CustomDataset(config, train=False)
 data_loader = create_dataloader(dataset, config)
 
 model = make_transformer_model(N=config['num_stacks'], d_model=config['d_model'], l_win=config['l_win'],
-                   d_ff=config['d_ff'], h=config['num_heads'], dropout=config['dropout']).float()
+                               d_ff=config['d_ff'], h=config['num_heads'], dropout=config['dropout']).float()
 model.load_state_dict(torch.load(
     config['checkpoint_dir'] + "best_train_70.pth"))
 model.eval()
@@ -241,5 +241,5 @@ plt.ylabel('True Positive Rate')
 plt.title('Augmented Receiver operating characteristic of ' +
           config['dataset'])
 plt.legend(loc="lower right")
-plt.savefig(config['result_dir']+ 'augmentedroc.pdf')
+plt.savefig(config['result_dir'] + 'augmentedroc.pdf')
 plt.show()
