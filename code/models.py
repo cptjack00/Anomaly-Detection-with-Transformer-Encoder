@@ -10,7 +10,7 @@ from torch.nn.modules.normalization import LayerNorm
 """ This code is a slightly modified version of The Annotated Transformer."""
 
 
-class AnomalyModel(nn.Module):
+class TransformerModel(nn.Module):
     def __init__(self, encoder, src_embed, linear):
         super().__init__()
         self.encoder = encoder
@@ -30,7 +30,7 @@ def clones(module, N):
     return nn.ModuleList([copy.deepcopy(module) for _ in range(N)])
 
 
-class Encoder(nn.Module):
+class TransformerEncoder(nn.Module):
     "Core encoder is a stack of N layers"
 
     def __init__(self, layer, N):
@@ -63,7 +63,7 @@ class SublayerConnection(nn.Module):
         return x + self.dropout(sublayer(self.norm(x)))
 
 
-class EncoderLayer(nn.Module):
+class TransformerEncoderLayer(nn.Module):
     """
     Encoder is made up of self-attn and feed foward
     """
@@ -154,9 +154,59 @@ class PositionalEncoding(nn.Module):
     def forward(self, x):
         x = x + Variable(self.pe[:, :x.size(1), :], requires_grad=False)
         return self.dropout(x)
+    
+class Encoder(nn.Module):
+    def __init__(self, seq_len, d_model, dropout=0.1):
+        super().__init__()
+        self.seq_len = seq_len
+        self.d_model = d_model
+        self.input_dims = seq_len * d_model
+        linear1 = nn.Linear(self.input_dims, 2800)
+        linear2 = nn.Linear(2800, 2200)
+        linear3 = nn.Linear(2200, 1600)
+        self.flatten = nn.Flatten()
+        self.linears = nn.ModuleList([linear1, linear2, linear3])
+        self.dropout = dropout
+    
+    def forward(self, x):
+        x = self.flatten(x)
+        for i, l in enumerate(self.linears):
+            x = F.relu(l(x))
+            x = nn.Dropout(p=self.dropout)(x)
+        return x
+
+class Decoder(nn.Module):
+    def __init__(self, seq_len, d_model, dropout=0.1):
+        super().__init__()
+        self.seq_len = seq_len
+        self.d_model = d_model
+        self.output_dims = seq_len * d_model
+        linear1 = nn.Linear(1600, 2200)
+        linear2 = nn.Linear(2200, 2800)
+        linear3 = nn.Linear(2800, self.output_dims)
+        self.linears = nn.ModuleList([linear1, linear2, linear3])
+        self.dropout = dropout
+        self.unflatten = nn.Unflatten(1, (seq_len, d_model))
+    
+    def forward(self, x):
+        for i, l in enumerate(self.linears):
+            x = F.relu(l(x))
+            x = nn.Dropout(p=self.dropout)(x)
+        x = self.unflatten(x)
+        return x
+
+class Autoencoder(nn.Module):
+    def __init__(self, encoder, decoder):
+        super().__init__()
+        self.encoder = encoder
+        self.decoder = decoder
+
+    def forward(self, input):
+        output = self.decoder(self.encoder(input))
+        return output
 
 
-def make_model(N, d_model, l_win, d_ff=0, h=8, dropout=0.1):
+def make_transformer_model(N, d_model, l_win, d_ff=0, h=8, dropout=0.1):
     if (d_ff == 0):
         d_ff = d_model * 4
     c = copy.deepcopy
@@ -164,13 +214,23 @@ def make_model(N, d_model, l_win, d_ff=0, h=8, dropout=0.1):
     ff = PositionwiseFeedForward(d_model, d_ff, dropout)
     position = PositionalEncoding(d_model, dropout, l_win)
     final_linear = nn.Linear(d_model, d_model)
-    model = AnomalyModel(
-        Encoder(EncoderLayer(
+    model = TransformerModel(
+        TransformerEncoder(TransformerEncoderLayer(
             d_model, c(attn), c(ff), dropout), N),
         nn.Sequential(position),
         final_linear
     )
 
+    for p in model.parameters():
+        if p.dim() > 1:
+            nn.init.xavier_uniform_(p)
+    return model
+
+
+def make_autoencoder_model(seq_len, d_model, dropout=0.1):
+    encoder = Encoder(seq_len=seq_len, d_model=d_model, dropout=dropout)
+    decoder = Decoder(seq_len=seq_len, d_model=d_model, dropout=dropout)
+    model = Autoencoder(encoder, decoder)
     for p in model.parameters():
         if p.dim() > 1:
             nn.init.xavier_uniform_(p)

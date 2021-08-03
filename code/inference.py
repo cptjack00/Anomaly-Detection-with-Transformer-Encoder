@@ -5,7 +5,7 @@ from scipy.stats import norm
 import torch
 import numpy as np
 from train import create_dataloader
-from model import make_model
+from model import make_transformer_model
 from data_loader import CustomDataset
 from utils import process_config, get_args
 
@@ -19,7 +19,7 @@ except:
 dataset = CustomDataset(config, train=False)
 data_loader = create_dataloader(dataset, config)
 
-model = make_model(N=config['num_stacks'], d_model=config['d_model'], l_win=config['l_win'],
+model = make_transformer_model(N=config['num_stacks'], d_model=config['d_model'], l_win=config['l_win'],
                    d_ff=config['d_ff'], h=config['num_heads'], dropout=config['dropout']).float()
 model.load_state_dict(torch.load(
     config['checkpoint_dir'] + "best_train_70.pth"))

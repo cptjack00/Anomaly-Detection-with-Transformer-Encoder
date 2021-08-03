@@ -2,7 +2,7 @@ import torch
 from utils import process_config, create_dirs, get_args, save_config
 from torch.utils.data.dataloader import DataLoader, T
 from data_loader import CustomDataset
-from model import make_model
+from models import make_transformer_model, make_autoencoder_model
 
 
 def create_dataloader(dataset, config):
@@ -15,18 +15,20 @@ def loss_backprop(criterion, out, targets):
     loss.backward()
     return loss
 
+
 def create_mask(config):
     mask = torch.ones(1, config['l_win'], config['l_win'])
     mask[:, config['pre_mask']:config['post_mask'], :] = 0
     mask[:, :, config['pre_mask']:config['post_mask']] = 0
-    mask = mask.float().masked_fill(mask == 0, float('-inf')).masked_fill(mask == 1, float(0))
+    mask = mask.float().masked_fill(mask == 0, float(
+        '-inf')).masked_fill(mask == 1, float(0))
     return mask
 
 
-min_train_loss = float('inf')
-best_model = None
-def train_epoch(train_iter, model, criterion, mask, opt, epoch, config):
-    global min_train_loss, best_model
+min_trans_loss = float('inf')
+best_trans_model = None
+def trans_train_epoch(train_iter, model, criterion, mask, opt, epoch, config):
+    global min_trans_loss, best_trans_model
     model.train()
     for i, batch in enumerate(train_iter):
         src = batch['input'].float()
@@ -39,13 +41,41 @@ def train_epoch(train_iter, model, criterion, mask, opt, epoch, config):
         opt.step()
         if i % 10 == 0:
             print(i, loss)
-    if loss < min_train_loss:
-        torch.save(model.state_dict(), config['checkpoint_dir'] + f"best_train_{epoch}.pth")
-        torch.save(opt.state_dict(), config['checkpoint_dir'] + f"optimizer_{epoch}.pth")
-        min_train_loss = loss
-        best_model = f"best_train_{epoch}.pth"
-    if best_model != None:
-        return best_model
+    if loss < min_trans_loss:
+        torch.save(model.state_dict(),
+                   config['checkpoint_dir'] + f"best_trans_{epoch}.pth")
+        torch.save(opt.state_dict(),
+                   config['checkpoint_dir'] + f"optimizer_trans_{epoch}.pth")
+        min_trans_loss = loss
+        best_trans_model = f"best_trans_{epoch}.pth"
+    if best_trans_model != None:
+        return best_trans_model
+
+min_auto_loss = float('inf')
+best_auto_model = None
+
+def autoencoder_train_epoch(train_iter, model, criterion, opt, epoch, config):
+    global min_auto_loss, best_auto_model
+    model.train()
+    for i, batch in enumerate(train_iter):
+        src = batch['input'].float()
+        trg = batch['target'].float()
+        out = model(src)
+        opt.zero_grad()
+        loss = loss_backprop(criterion, out, trg)
+        opt.step()
+        if i % 10 == 0:
+            print(i, loss)
+    if loss < min_auto_loss:
+        torch.save(model.state_dict(),
+                   config['checkpoint_dir'] + f"best_autoencoder_{epoch}.pth")
+        torch.save(opt.state_dict(),
+                   config['checkpoint_dir'] + f"optimizer_autoencoder_{epoch}.pth")
+        min_auto_loss = loss
+        best_auto_model = f"best_autoencoder_{epoch}.pth"
+    if best_auto_model != None:
+        return best_auto_model
+
 
 def main():
     try:
@@ -54,20 +84,24 @@ def main():
     except:
         print("Missing or invalid arguments")
         exit(0)
-    
+
     create_dirs(config['result_dir'], config['checkpoint_dir'])
 
     dataset = CustomDataset(config)
     dataloader = create_dataloader(dataset, config)
-    mask = create_mask(config)
-    model = make_model(
-        N=6, d_model=dataset.rolling_windows.shape[-1], l_win=config['l_win'], d_ff=128, h=1, dropout=0.1)
+    # mask = create_mask(config)
+    # model = make_transformer_model(
+    #     N=6, d_model=dataset.rolling_windows.shape[-1], l_win=config['l_win'], d_ff=128, h=1, dropout=0.1)
+    model = make_autoencoder_model(
+        seq_len=config['autoencoder_dims'], d_model=config['d_model'])
     model.float()
     model_opt = torch.optim.Adam(model.parameters())
     criterion = torch.nn.MSELoss()
     for epoch in range(config['num_epoch']):
-        config['best_model'] = train_epoch(dataloader, model, criterion, mask, model_opt, epoch, config)
+        config['best_auto_model'] = autoencoder_train_epoch(
+            dataloader, model, criterion, model_opt, epoch, config)
     save_config(config)
+
 
 if __name__ == '__main__':
     main()

@@ -4,20 +4,21 @@ from torch.utils.data import Dataset
 
 
 class CustomDataset(Dataset):
-    def __init__(self, config, train=True):
+    def __init__(self, config, train=True, model_type="autoencoder"):
         super().__init__()
         self.config = config
         self.train = train
-        self.load_dataset(self.config['dataset'])
-        # self.input_mask = self._create_window_mask()
-        # if self.train:
-        #     self.mask_input()
+        self.model_type = model_type
+        if model_type == "autoencoder":
+            self.load_dataset(self.config['auto_dataset'])
+        else:
+            self.load_dataset(self.config['trans_dataset'])
 
     def __len__(self):
         return self.rolling_windows.shape[0]
 
     def __getitem__(self, index):
-        if self.train:
+        if (self.train) or (self.model_type == "autoencoder"):
             inp = target = self.rolling_windows[index, :, :]
         else:
             inp = self.rolling_windows[index, :, :]
@@ -30,27 +31,21 @@ class CustomDataset(Dataset):
         self.data = np.load(data_dir + dataset + '.npz')
 
         # slice training set into rolling windows
-        if self.train:
-            self.rolling_windows = np.lib.stride_tricks.sliding_window_view(
-                self.data['training'], self.config['l_win'], axis=0, writeable=True
-            ).transpose(0, 2, 1)
+        if self.model_type == "autoencoder":
+            if self.train:
+                self.rolling_windows = np.lib.stride_tricks.sliding_window_view(
+                    self.data['training'], self.config['autoencoder_dims'], axis=0, writeable=True
+                ).transpose(0, 2, 1)
+            else:
+                self.rolling_windows = np.lib.stride_tricks.sliding_window_view(
+                    self.data['test'], self.config['autoencoder_dims'], axis=0, writeable=True
+                ).transpose(0, 2, 1)
         else:
-            self.rolling_windows = np.lib.stride_tricks.sliding_window_view(
-                self.data['test'], self.config['l_win'], axis=0, writeable=True
-            ).transpose(0, 2, 1)
-
-    # def _create_window_mask(self):
-    #     """Mask out the defined positions."""
-    #     config = self.config
-    #     attn_shape = (1, config['l_win'], self.rolling_windows.shape[-1])
-    #     window_mask = np.ones(attn_shape).astype('float')
-    #     window_mask[:, config['pre_mask']:config['post_mask'], :] = 0.0
-    #     return torch.from_numpy(window_mask)
-
-    # def mask_input(self):
-    #     self.input_mask = self.input_mask.masked_fill(
-    #         self.input_mask == 0, float(-1e9)).masked_fill(self.input_mask == 1, 0)
-    #     self.rolling_windows = np.add(self.rolling_windows, self.input_mask)
-
-    # def block_time_steps(self):
-    #     self.input = np.delete(self.rolling_windows, list(range(self.config['pre_mask'],self.config['post_mask'])), axis=1)
+            if self.train:
+                self.rolling_windows = np.lib.stride_tricks.sliding_window_view(
+                    self.data['training'], self.config['l_win'], axis=0, writeable=True
+                ).transpose(0, 2, 1)
+            else:
+                self.rolling_windows = np.lib.stride_tricks.sliding_window_view(
+                    self.data['test'], self.config['l_win'], axis=0, writeable=True
+                ).transpose(0, 2, 1)
