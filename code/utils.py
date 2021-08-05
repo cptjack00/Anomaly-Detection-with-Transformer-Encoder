@@ -1,7 +1,6 @@
 import argparse
 import json
 import os
-from datetime import datetime
 
 
 def get_config_from_json(json_file):
@@ -18,10 +17,9 @@ def get_config_from_json(json_file):
 
 
 def save_config(config):
-    dateTimeObj = datetime.now()
-    timestampStr = dateTimeObj.strftime("%d-%b-%Y-%H-%M")
     filename = config['result_dir'] + \
-        'training_config_{}.json'.format(timestampStr)
+        'training_config_l_win_{}_auto_dims_{}.json'.format(
+            config['l_win'], config['autoencoder_dims'])
     config_to_save = json.dumps(config)
     f = open(filename, "w")
     json.dump(config_to_save, f)

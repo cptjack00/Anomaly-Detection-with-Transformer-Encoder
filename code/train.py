@@ -125,7 +125,7 @@ def main():
     # Training the transformer model
     mask = create_mask(config)
     trans_model = make_transformer_model(
-        N=6, d_model=dataset.rolling_windows.shape[-1], l_win=config['l_win'], d_ff=128, h=1, dropout=0.1)
+        N=config['num_stacks'], d_model=dataset.rolling_windows.shape[-1], l_win=config['l_win'], d_ff=128, h=1, dropout=0.1)
     trans_model.float()
     model_opt = torch.optim.Adam(trans_model.parameters())
     autoencoder_model.load_state_dict(
