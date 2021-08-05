@@ -164,16 +164,18 @@ class Encoder(nn.Module):
         self.input_dims = seq_len * d_model
         linear1 = nn.Linear(self.input_dims, 2800)
         linear2 = nn.Linear(2800, 2200)
-        linear3 = nn.Linear(2200, 1600)
+        linear3 = nn.Linear(2200, seq_len // 4 * d_model)
         self.flatten = nn.Flatten()
         self.linears = nn.ModuleList([linear1, linear2, linear3])
         self.dropout = dropout
+        self.unflatten = nn.Unflatten(1, (seq_len // 4, d_model))
 
     def forward(self, x):
         x = self.flatten(x)
         for i, l in enumerate(self.linears):
             x = F.relu(l(x))
             x = nn.Dropout(p=self.dropout)(x)
+        x = self.unflatten(x)
         return x
 
 
@@ -183,14 +185,16 @@ class Decoder(nn.Module):
         self.seq_len = seq_len
         self.d_model = d_model
         self.output_dims = seq_len * d_model
-        linear1 = nn.Linear(1600, 2200)
+        linear1 = nn.Linear(seq_len // 4 * d_model, 2200)
         linear2 = nn.Linear(2200, 2800)
         linear3 = nn.Linear(2800, self.output_dims)
         self.linears = nn.ModuleList([linear1, linear2, linear3])
         self.dropout = dropout
+        self.flatten = nn.Flatten()
         self.unflatten = nn.Unflatten(1, (seq_len, d_model))
 
     def forward(self, x):
+        x = self.flatten(x)
         for i, l in enumerate(self.linears):
             x = F.relu(l(x))
             x = nn.Dropout(p=self.dropout)(x)

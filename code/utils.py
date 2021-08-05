@@ -21,10 +21,10 @@ def save_config(config):
     dateTimeObj = datetime.now()
     timestampStr = dateTimeObj.strftime("%d-%b-%Y-%H-%M")
     filename = config['result_dir'] + \
-        'training_config_{}.txt'.format(timestampStr)
+        'training_config_{}.json'.format(timestampStr)
     config_to_save = json.dumps(config)
     f = open(filename, "w")
-    f.write(config_to_save)
+    json.dump(config_to_save, f)
     f.close()
 
 
@@ -34,7 +34,7 @@ def process_config(json_file):
     # create directories to save experiment results and trained models
     if config['load_dir'] == "default":
         save_dir = "../experiments/{}/{}".format(
-            config['experiment'], config['dataset'])
+            config['experiment'], config['auto_dataset'])
     else:
         save_dir = config['load_dir']
     config['summary_dir'] = os.path.join(save_dir, "summary/")
