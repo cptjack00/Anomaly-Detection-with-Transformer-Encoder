@@ -1,13 +1,16 @@
 import math
+import time
+
 import matplotlib.pyplot as plt
-from sklearn import metrics
-from scipy.stats import norm
-import torch
 import numpy as np
-from train import create_dataloader
-from model import make_transformer_model
+import torch
+from scipy.stats import norm
+from sklearn import metrics
+
 from data_loader import CustomDataset
-from utils import process_config, get_args
+from models import make_autoencoder_model, make_transformer_model
+from train import create_dataloader, create_mask
+from utils import get_args, process_config, save_config
 
 try:
     args = get_args()
@@ -15,25 +18,36 @@ try:
 except:
     print("Missing or invalid arguments")
     exit(0)
-
+start = time.time()
 dataset = CustomDataset(config, train=False)
 data_loader = create_dataloader(dataset, config)
 
-model = make_transformer_model(N=config['num_stacks'], d_model=config['d_model'], l_win=config['l_win'],
-                               d_ff=config['d_ff'], h=config['num_heads'], dropout=config['dropout']).float()
-model.load_state_dict(torch.load(
-    config['checkpoint_dir'] + "best_train_70.pth"))
-model.eval()
+autoencoder_model = make_autoencoder_model(
+    seq_len=config['autoencoder_dims'], d_model=config['d_model'])
+autoencoder_model.load_state_dict(torch.load(
+    config['checkpoint_dir'] + config['best_auto_model']))
+autoencoder_model.float()
+autoencoder_model.eval()
+encoder = autoencoder_model.encoder
+
+mask = create_mask(config)
+trans_model = make_transformer_model(N=config['num_stacks'], d_model=config['d_model'], l_win=config['l_win'],
+                                     d_ff=config['d_ff'], h=config['num_heads'], dropout=config['dropout']).float()
+trans_model.load_state_dict(torch.load(
+    config['checkpoint_dir'] + config["best_trans_model"]))
+trans_model.eval()
 
 loss = torch.nn.MSELoss()
 n_test = dataset.rolling_windows.shape[0]
 recon_loss = np.zeros(n_test)
 for i, batch in enumerate(data_loader):
-    out = model(batch['input'].float(), src_mask=None)
+    src = encoder(batch['input'].float())
+    trg = encoder(batch['target'].float())
+    out = trans_model(src, src_mask=mask)
     for j in range(config['batch_size']):
         try:
             recon_loss[i * config['batch_size'] + j] = loss(
-                out[j, config['pre_mask']:config['post_mask'], :], batch['target'][j, :, :])
+                out[j, config['pre_mask']:config['post_mask'], :], trg[j, config['pre_mask']:config['post_mask'], :])
         except:
             pass
 
@@ -239,7 +253,8 @@ plt.ylim([0.0, 1.05])
 plt.xlabel('False Positive Rate')
 plt.ylabel('True Positive Rate')
 plt.title('Augmented Receiver operating characteristic of ' +
-          config['dataset'])
+          config['auto_dataset'])
 plt.legend(loc="lower right")
 plt.savefig(config['result_dir'] + 'augmentedroc.pdf')
-plt.show()
+config['inference_time'] = (time.time() - start) / 60
+save_config(config)

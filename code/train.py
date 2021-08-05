@@ -1,8 +1,11 @@
+import time
+
 import torch
-from utils import process_config, create_dirs, get_args, save_config
 from torch.utils.data.dataloader import DataLoader, T
+
 from data_loader import CustomDataset
-from models import make_transformer_model, make_autoencoder_model
+from models import make_autoencoder_model, make_transformer_model
+from utils import create_dirs, get_args, process_config, save_config
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
@@ -34,15 +37,16 @@ def trans_train_epoch(train_iter, model, autoencoder, criterion, mask, opt, epoc
     global min_trans_loss, best_trans_model
     model.train()
     model.to(device)
-    autoencoder.to(device)
+    autoencoder.eval()
+    encoder = autoencoder.encoder
+    encoder.to(device)
     for i, batch in enumerate(train_iter):
         src = batch['input'].float()
         src.to(device)
-        src = autoencoder(src)
+        src = encoder(src)
         trg = batch['target'].float()
         trg.to(device)
-        trg = autoencoder(src)
-        # the words we are trying to predict
+        trg = encoder(trg)
         out = model(src, src_mask=mask)
 
         opt.zero_grad()
@@ -95,7 +99,8 @@ def main():
     try:
         args = get_args()
         config = process_config(args.config)
-    except:
+    except Exception as Ex:
+        print(Ex)
         print("Missing or invalid arguments")
         exit(0)
 
@@ -104,6 +109,7 @@ def main():
     dataset = CustomDataset(config)
     dataloader = create_dataloader(dataset, config)
 
+    start = time.time()
     # Training the autoencoder
     autoencoder_model = make_autoencoder_model(
         seq_len=config['autoencoder_dims'], d_model=config['d_model'])
@@ -114,18 +120,21 @@ def main():
         config['best_auto_model'] = autoencoder_train_epoch(
             dataloader, autoencoder_model, criterion, model_opt, epoch, config)
     print("COMPLETED TRAINING THE AUTOENCODER")
+    config['auto_train_time'] = (time.time() - start) / 60
+    start = time.time()
     # Training the transformer model
     mask = create_mask(config)
     trans_model = make_transformer_model(
         N=6, d_model=dataset.rolling_windows.shape[-1], l_win=config['l_win'], d_ff=128, h=1, dropout=0.1)
     trans_model.float()
-    best_auto_model = autoencoder_model.load_state_dict(
-        torch.load(config['model_path'] + config['best_auto_model']))
+    model_opt = torch.optim.Adam(trans_model.parameters())
+    autoencoder_model.load_state_dict(
+        torch.load(config['checkpoint_dir'] + config['best_auto_model']))
     for epoch in range(config['trans_num_epoch']):
         config['best_trans_model'] = trans_train_epoch(
-            dataloader, trans_model, best_auto_model, criterion, mask, model_opt, epoch, config)
+            dataloader, trans_model, autoencoder_model, criterion, mask, model_opt, epoch, config)
     print("COMPLETED TRAINING THE TRANSFORMER")
-
+    config['trans_train_time'] = (time.time() - start) / 60
     save_config(config)
 
 
