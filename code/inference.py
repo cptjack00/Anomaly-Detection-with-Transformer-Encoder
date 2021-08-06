@@ -188,7 +188,7 @@ print("At this threshold, precision is {}, recall is {}".format(precision_aug[id
 
 # Now select a threshold
 threshold = best_thres
-q_list = [0.99, 0.95, 0.9, 0.85, 0.8, 0.7, 0.6, 0.5, 0.4, 0.3, 0.2, 0.1]
+q_list = [0.99, 0.9, 0.1]
 temp = math.inf
 q_best = 0
 closest_thres = 0
