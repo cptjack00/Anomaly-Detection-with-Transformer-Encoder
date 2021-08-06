@@ -167,8 +167,6 @@ threshold_list = np.flip(threshold_list)
 for threshold in threshold_list:
     # print(threshold_list[i])
     idx_detection = return_anomaly_idx_by_threshold(recon_loss, threshold)
-    precision[i], recall[i], F1[i], _, _, _, _ = compute_precision_and_recall(idx_detection,
-                                                                              test_labels)
     # augment the detection using the ground truth labels
     # a method to discount the factor one anomaly appears in multiple consecutive windows
     # introduced in "Unsupervised anomaly detection via variational auto-encoder for seasonal kpis in web applications"
@@ -179,14 +177,6 @@ for threshold in threshold_list:
     i = i + 1
     #print(precision, recall, F1)
 
-print("threshold list:", threshold_list)
-print("Best F1 score is {}".format(np.amax(F1)))
-idx_best_threshold = np.squeeze(np.argwhere(F1 == np.amax(F1)))
-print("Best threshold is {}".format(threshold_list[idx_best_threshold]))
-print("At this threshold, precision is {}, recall is {}".format(
-    precision[idx_best_threshold], recall[idx_best_threshold]))
-average_precision = np.sum(precision[1:] * (recall[1:] - recall[:-1]))
-print("Average precision is {}".format(average_precision))
 
 print("\nAugmented detection:")
 print("Best F1 score is {}".format(np.amax(F1_aug)))
@@ -196,9 +186,6 @@ best_thres = np.min(threshold_list[idx_best_threshold])
 print("At this threshold, precision is {}, recall is {}".format(precision_aug[idx_best_threshold],
                                                                 recall_aug[idx_best_threshold]))
 
-average_precision_aug = np.sum(
-    precision_aug[1:] * (recall_aug[1:] - recall_aug[:-1]))
-print("Average precision is {}".format(average_precision_aug))
 # Now select a threshold
 threshold = best_thres
 q_list = [0.99, 0.95, 0.9, 0.85, 0.8, 0.7, 0.6, 0.5, 0.4, 0.3, 0.2, 0.1]
@@ -222,28 +209,17 @@ idx_detection_augmented = augment_detected_idx(idx_detection, anomaly_index)
 # print(idx_detection_augmented)
 precision, recall, F1, _, n_TP, n_FP, n_FN = compute_precision_and_recall(idx_detection_augmented,
                                                                           test_labels)
-print("\nPR evaluation using KQE:")
-print("Precision: {}".format(precision))
+# print("\nPR evaluation using KQE:")
+# print("Precision: {}".format(precision))
 config["precision"] = precision
-print("Recall: {}".format(recall))
+# print("Recall: {}".format(recall))
 config["recall"] = recall
-print("F1: {}".format(F1))
+# print("F1: {}".format(F1))
 config["F1"] = F1
-print("TP: {}".format(n_TP))
-print("FP: {}".format(n_FP))
-print("FN: {}".format(n_FN))
+# print("TP: {}".format(n_TP))
+# print("FP: {}".format(n_FP))
+# print("FN: {}".format(n_FN))
 
-print("\nThreshold is {}".format(threshold))
-idx_detection = return_anomaly_idx_by_threshold(recon_loss, threshold)
-idx_detection_augmented = augment_detected_idx(idx_detection, anomaly_index)
-precision, recall, F1, _, n_TP, n_FP, n_FN = compute_precision_and_recall(idx_detection_augmented,
-                                                                          test_labels)
-print("\nPR evaluation using augmented detection:")
-print("Precision: {}".format(precision))
-print("Recall: {}".format(recall))
-print("F1: {}".format(F1))
-print("TP: {}".format(n_TP))
-print("FP: {}".format(n_FP))
 tpr = np.insert(recall_aug, [0, n_threshold], [0, 1])
 fpr = np.insert(fpr_aug, [0, n_threshold], [0, 1])
 auc = metrics.auc(fpr, tpr)
