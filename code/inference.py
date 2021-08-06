@@ -18,7 +18,6 @@ try:
 except:
     print("Missing or invalid arguments")
     exit(0)
-start = time.time()
 dataset = CustomDataset(config, train=False)
 data_loader = create_dataloader(dataset, config)
 
@@ -149,10 +148,10 @@ def KQp(data, q):
     return KQ
 
 
-for i in [0.99, 0.95, 0.9, 0.85, 0.8, 0.7, 0.6, 0.5, 0.4, 0.3, 0.2, 0.1]:
-    print("KQp is:", KQp(recon_loss, i), "with q =", i)
+# for i in [0.99, 0.95, 0.9, 0.85, 0.8, 0.7, 0.6, 0.5, 0.4, 0.3, 0.2, 0.1]:
+#     print("KQp is:", KQp(recon_loss, i), "with q =", i)
 
-n_threshold = 25
+n_threshold = 20
 precision = np.zeros(n_threshold)
 recall = np.zeros(n_threshold)
 F1 = np.zeros(n_threshold)
@@ -162,10 +161,13 @@ F1_aug = np.zeros(n_threshold)
 fpr_aug = np.zeros(n_threshold)
 i = 0
 threshold_list = np.linspace(np.amin(recon_loss), np.amax(
-    recon_loss), n_threshold, endpoint=True)
+    recon_loss), n_threshold, endpoint=False)
+print(threshold_list)
 threshold_list = np.flip(threshold_list)
+print(threshold_list)
 for threshold in threshold_list:
     # print(threshold_list[i])
+    print(i)
     idx_detection = return_anomaly_idx_by_threshold(recon_loss, threshold)
     # augment the detection using the ground truth labels
     # a method to discount the factor one anomaly appears in multiple consecutive windows
@@ -200,6 +202,7 @@ for q in q_list:
         q_best = q
         KQp_thres = temp_thres
 
+start = time.time()
 print("Closest KQp threshold is {} at q = {}".format(KQp_thres, q_best))
 config["q_best"] = q_best
 idx_detection = return_anomaly_idx_by_threshold(recon_loss, KQp_thres)
