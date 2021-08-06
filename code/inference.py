@@ -23,40 +23,40 @@ dataset = CustomDataset(config, train=False)
 data_loader = create_dataloader(dataset, config)
 
 autoencoder_model = make_autoencoder_model(
-    seq_len=config['autoencoder_dims'], d_model=config['d_model'])
+    seq_len=config["autoencoder_dims"], d_model=config["d_model"])
 autoencoder_model.load_state_dict(torch.load(
-    config['checkpoint_dir'] + config['best_auto_model']))
+    config["checkpoint_dir"] + config["best_auto_model"]))
 autoencoder_model.float()
 autoencoder_model.eval()
 encoder = autoencoder_model.encoder
 
 mask = create_mask(config)
-trans_model = make_transformer_model(N=config['num_stacks'], d_model=config['d_model'], l_win=config['l_win'],
-                                     d_ff=config['d_ff'], h=config['num_heads'], dropout=config['dropout']).float()
+trans_model = make_transformer_model(N=config["num_stacks"], d_model=config["d_model"], l_win=config["l_win"],
+                                     d_ff=config["d_ff"], h=config["num_heads"], dropout=config["dropout"]).float()
 trans_model.load_state_dict(torch.load(
-    config['checkpoint_dir'] + config["best_trans_model"]))
+    config["checkpoint_dir"] + config["best_trans_model"]))
 trans_model.eval()
 
 loss = torch.nn.MSELoss()
 n_test = dataset.rolling_windows.shape[0]
 recon_loss = np.zeros(n_test)
 for i, batch in enumerate(data_loader):
-    src = encoder(batch['input'].float())
-    trg = encoder(batch['target'].float())
+    src = encoder(batch["input"].float())
+    trg = encoder(batch["target"].float())
     out = trans_model(src, src_mask=mask)
-    for j in range(config['batch_size']):
+    for j in range(config["batch_size"]):
         try:
-            recon_loss[i * config['batch_size'] + j] = loss(
-                out[j, config['pre_mask']:config['post_mask'], :], trg[j, config['pre_mask']:config['post_mask'], :])
+            recon_loss[i * config["batch_size"] + j] = loss(
+                out[j, config["pre_mask"]:config["post_mask"], :], trg[j, config["pre_mask"]:config["post_mask"], :])
         except:
             pass
 
-idx_anomaly_test = dataset.data['idx_anomaly_test']
+idx_anomaly_test = dataset.data["idx_anomaly_test"]
 anomaly_index = []
 test_labels = np.zeros(n_test)
 for i in range(len(idx_anomaly_test)):
-    idx_start = idx_anomaly_test[i] - (config['l_win'] + 1)
-    idx_end = idx_anomaly_test[i] + (config['l_win'] + 1)
+    idx_start = idx_anomaly_test[i] - (config["l_win"] + 1)
+    idx_end = idx_anomaly_test[i] + (config["l_win"] + 1)
     if idx_start < 0:
         idx_start = 0
     if idx_end > n_test:
@@ -179,7 +179,7 @@ for threshold in threshold_list:
     i = i + 1
     #print(precision, recall, F1)
 
-print('threshold list:', threshold_list)
+print("threshold list:", threshold_list)
 print("Best F1 score is {}".format(np.amax(F1)))
 idx_best_threshold = np.squeeze(np.argwhere(F1 == np.amax(F1)))
 print("Best threshold is {}".format(threshold_list[idx_best_threshold]))
@@ -214,6 +214,7 @@ for q in q_list:
         KQp_thres = temp_thres
 
 print("Closest KQp threshold is {} at q = {}".format(KQp_thres, q_best))
+config["q_best"] = q_best
 idx_detection = return_anomaly_idx_by_threshold(recon_loss, KQp_thres)
 # print(idx_detection)
 idx_detection_augmented = augment_detected_idx(idx_detection, anomaly_index)
@@ -223,8 +224,11 @@ precision, recall, F1, _, n_TP, n_FP, n_FN = compute_precision_and_recall(idx_de
                                                                           test_labels)
 print("\nPR evaluation using KQE:")
 print("Precision: {}".format(precision))
+config["precision"] = precision
 print("Recall: {}".format(recall))
+config["recall"] = recall
 print("F1: {}".format(F1))
+config["F1"] = F1
 print("TP: {}".format(n_TP))
 print("FP: {}".format(n_FP))
 print("FN: {}".format(n_FN))
@@ -243,18 +247,19 @@ print("FP: {}".format(n_FP))
 tpr = np.insert(recall_aug, [0, n_threshold], [0, 1])
 fpr = np.insert(fpr_aug, [0, n_threshold], [0, 1])
 auc = metrics.auc(fpr, tpr)
-print('AUC =', auc)
+print("AUC =", auc)
+config["AUC"] = auc
 lw = 2
-plt.plot(fpr, tpr, color='darkorange', lw=lw,
-         label='ROC curve (area = %0.4f)' % auc)
-plt.plot([0, 1], [0, 1], color='navy', lw=lw, linestyle='--')
+plt.plot(fpr, tpr, color="darkorange", lw=lw,
+         label="ROC curve (area = %0.4f)" % auc)
+plt.plot([0, 1], [0, 1], color="navy", lw=lw, linestyle="--")
 plt.xlim([0.0, 1.0])
 plt.ylim([0.0, 1.05])
-plt.xlabel('False Positive Rate')
-plt.ylabel('True Positive Rate')
-plt.title('Augmented Receiver operating characteristic of ' +
-          config['auto_dataset'])
+plt.xlabel("False Positive Rate")
+plt.ylabel("True Positive Rate")
+plt.title("Augmented Receiver operating characteristic of " +
+          config["auto_dataset"])
 plt.legend(loc="lower right")
-plt.savefig(config['result_dir'] + 'augmentedroc.pdf')
-config['inference_time'] = (time.time() - start) / 60
+plt.savefig(config["result_dir"] + "augmentedroc.pdf")
+config["inference_time"] = (time.time() - start) / 60
 save_config(config)

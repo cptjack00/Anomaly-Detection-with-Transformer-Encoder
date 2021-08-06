@@ -125,7 +125,7 @@ class PositionwiseFeedForward(nn.Module):
 
     def __init__(self, d_model, d_ff, dropout=0.1):
         super().__init__()
-        # Torch linears have a 'b' by default.
+        # Torch linears have a "b" by default.
         self.w_1 = nn.Linear(d_model, d_ff)
         self.w_2 = nn.Linear(d_ff, d_model)
         self.dropout = nn.Dropout(dropout)
@@ -149,7 +149,7 @@ class PositionalEncoding(nn.Module):
         pe[:, 0::2] = torch.sin(div_term * position)
         pe[:, 1::2] = torch.cos(div_term * position)
         pe = pe.unsqueeze(0)
-        self.register_buffer('pe', pe)
+        self.register_buffer("pe", pe)
 
     def forward(self, x):
         x = x + Variable(self.pe[:, :x.size(1), :], requires_grad=False)
