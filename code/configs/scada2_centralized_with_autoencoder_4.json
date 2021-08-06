@@ -1,0 +1,22 @@
+{
+    "experiment": "SCADA2_CEN_AUTO_4",
+    "data_dir": "scada2",
+    "auto_dataset": "scada2",
+    "trans_dataset": "new_scada2",
+    "num_stacks": 4,
+    "d_model": 16,
+    "d_ff": 128,
+    "num_heads": 1,
+    "dropout": 0.1, 
+    "autoencoder_dims": 100,
+    "l_win": 25,
+    "pre_mask": 8,
+    "post_mask": 17,
+    "batch_size": 64,
+    "shuffle": 1,
+    "dataloader_num_workers": 10,
+    "auto_num_epoch": 10,
+    "trans_num_epoch": 15,
+    "load_dir": "default",
+    "diff_with_config_3": "auto model size"
+}

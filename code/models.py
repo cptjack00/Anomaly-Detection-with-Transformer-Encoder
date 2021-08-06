@@ -162,9 +162,9 @@ class Encoder(nn.Module):
         self.seq_len = seq_len
         self.d_model = d_model
         self.input_dims = seq_len * d_model
-        linear1 = nn.Linear(self.input_dims, 2800)
-        linear2 = nn.Linear(2800, 2200)
-        linear3 = nn.Linear(2200, seq_len // 4 * d_model)
+        linear1 = nn.Linear(self.input_dims, 1200)
+        linear2 = nn.Linear(1200, 800)
+        linear3 = nn.Linear(800, seq_len // 4 * d_model)
         self.flatten = nn.Flatten()
         self.linears = nn.ModuleList([linear1, linear2, linear3])
         self.dropout = dropout
