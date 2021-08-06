@@ -185,9 +185,9 @@ class Decoder(nn.Module):
         self.seq_len = seq_len
         self.d_model = d_model
         self.output_dims = seq_len * d_model
-        linear1 = nn.Linear(seq_len // 4 * d_model, 2200)
-        linear2 = nn.Linear(2200, 2800)
-        linear3 = nn.Linear(2800, self.output_dims)
+        linear1 = nn.Linear(seq_len // 4 * d_model, 800)
+        linear2 = nn.Linear(800, 1200)
+        linear3 = nn.Linear(1200, self.output_dims)
         self.linears = nn.ModuleList([linear1, linear2, linear3])
         self.dropout = dropout
         self.flatten = nn.Flatten()
