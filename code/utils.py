@@ -22,7 +22,7 @@ def save_config(config):
             config["l_win"], config["autoencoder_dims"])
     config_to_save = json.dumps(config)
     f = open(filename, "w")
-    json.dump(config_to_save, f)
+    f.write(config_to_save)
     f.close()
 
 
