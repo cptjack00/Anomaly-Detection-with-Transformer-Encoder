@@ -6,3 +6,6 @@ models/
 code/__pycache__/
 .ipynb_checkpoints/
 experiments/
+Dockerfile
+make.sh
+get-pip.py
