@@ -157,18 +157,24 @@ class PositionalEncoding(nn.Module):
 
 
 class Encoder(nn.Module):
-    def __init__(self, seq_len, d_model, dropout=0.1):
+    def __init__(self, in_seq_len, out_seq_len, d_model, dropout=0.1):
         super().__init__()
-        self.seq_len = seq_len
+        self.in_seq_len = in_seq_len
+        self.out_seq_len = out_seq_len
         self.d_model = d_model
-        self.input_dims = seq_len * d_model
-        linear1 = nn.Linear(self.input_dims, 2800)
-        linear2 = nn.Linear(2800, 2200)
-        linear3 = nn.Linear(2200, seq_len // 4 * d_model)
+        self.input_dims = self.in_seq_len * self.d_model
+        self.output_dims = self.out_seq_len * self.d_model
+        self.dims_1 = (self.input_dims - self.output_dims) // 4 * 3 
+        self.dims_2 = (self.input_dims - self.output_dims) // 4 * 2
+
+        linear1 = nn.Linear(self.input_dims, self.dims_1)
+        linear2 = nn.Linear(self.dims_1, self.dims_2)
+        linear3 = nn.Linear(self.dims_2, self.output_dims)
+
         self.flatten = nn.Flatten()
         self.linears = nn.ModuleList([linear1, linear2, linear3])
         self.dropout = dropout
-        self.unflatten = nn.Unflatten(1, (seq_len // 4, d_model))
+        self.unflatten = nn.Unflatten(1, (self.out_seq_len, self.d_model))
 
     def forward(self, x):
         x = self.flatten(x)
@@ -180,18 +186,24 @@ class Encoder(nn.Module):
 
 
 class Decoder(nn.Module):
-    def __init__(self, seq_len, d_model, dropout=0.1):
+    def __init__(self, in_seq_len, out_seq_len, d_model, dropout=0.1):
         super().__init__()
-        self.seq_len = seq_len
+        self.in_seq_len = in_seq_len
+        self.out_seq_len = out_seq_len
         self.d_model = d_model
-        self.output_dims = seq_len * d_model
-        linear1 = nn.Linear(seq_len // 4 * d_model, 2200)
-        linear2 = nn.Linear(2200, 2800)
-        linear3 = nn.Linear(2800, self.output_dims)
+        self.input_dims = self.in_seq_len * self.d_model
+        self.output_dims =  self.out_seq_len * self.d_model
+        self.dims_1 = (self.output_dims - self.input_dims) // 4 * 3
+        self.dims_2 = (self.output_dims - self.input_dims) // 4 * 2
+
+        linear1 = nn.Linear(self.output_dims, self.dims_2)
+        linear2 = nn.Linear(self.dims_2, self.dims_1)
+        linear3 = nn.Linear(self.dims_1, self.input_dims)
+
         self.linears = nn.ModuleList([linear1, linear2, linear3])
         self.dropout = dropout
         self.flatten = nn.Flatten()
-        self.unflatten = nn.Unflatten(1, (seq_len, d_model))
+        self.unflatten = nn.Unflatten(1, (self.in_seq_len, self.d_model))
 
     def forward(self, x):
         x = self.flatten(x)
@@ -234,9 +246,9 @@ def make_transformer_model(N, d_model, l_win, d_ff=0, h=8, dropout=0.1):
     return model
 
 
-def make_autoencoder_model(seq_len, d_model, dropout=0.1):
-    encoder = Encoder(seq_len=seq_len, d_model=d_model, dropout=dropout)
-    decoder = Decoder(seq_len=seq_len, d_model=d_model, dropout=dropout)
+def make_autoencoder_model(in_seq_len, out_seq_len, d_model, dropout=0.1):
+    encoder = Encoder(in_seq_len=in_seq_len, out_seq_len=out_seq_len, d_model=d_model, dropout=dropout)
+    decoder = Decoder(in_seq_len=in_seq_len, out_seq_len=out_seq_len, d_model=d_model, dropout=dropout)
     model = Autoencoder(encoder, decoder)
     for p in model.parameters():
         if p.dim() > 1:
