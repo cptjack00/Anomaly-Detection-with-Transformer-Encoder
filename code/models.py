@@ -164,7 +164,7 @@ class Encoder(nn.Module):
         self.d_model = d_model
         self.input_dims = self.in_seq_len * self.d_model
         self.output_dims = self.out_seq_len * self.d_model
-        self.dims_1 = (self.input_dims - self.output_dims) // 4 * 3 
+        self.dims_1 = (self.input_dims - self.output_dims) // 4 * 3
         self.dims_2 = (self.input_dims - self.output_dims) // 4 * 2
 
         linear1 = nn.Linear(self.input_dims, self.dims_1)
@@ -193,8 +193,8 @@ class Decoder(nn.Module):
         self.d_model = d_model
         self.input_dims = self.in_seq_len * self.d_model
         self.output_dims =  self.out_seq_len * self.d_model
-        self.dims_1 = (self.output_dims - self.input_dims) // 4 * 3
-        self.dims_2 = (self.output_dims - self.input_dims) // 4 * 2
+        self.dims_1 = (self.input_dims - self.output_dims) // 4 * 3
+        self.dims_2 = (self.input_dims - self.output_dims) // 4 * 2
 
         linear1 = nn.Linear(self.output_dims, self.dims_2)
         linear2 = nn.Linear(self.dims_2, self.dims_1)
@@ -247,8 +247,8 @@ def make_transformer_model(N, d_model, l_win, d_ff=0, h=8, dropout=0.1):
 
 
 def make_autoencoder_model(in_seq_len, out_seq_len, d_model, dropout=0.1):
-    encoder = Encoder(in_seq_len=in_seq_len, out_seq_len=out_seq_len, d_model=d_model, dropout=dropout)
-    decoder = Decoder(in_seq_len=in_seq_len, out_seq_len=out_seq_len, d_model=d_model, dropout=dropout)
+    encoder = Encoder(in_seq_len, out_seq_len, d_model, dropout)
+    decoder = Decoder(in_seq_len, out_seq_len, d_model, dropout)
     model = Autoencoder(encoder, decoder)
     for p in model.parameters():
         if p.dim() > 1:
