@@ -20,11 +20,8 @@ def save_config(config):
     filename = config["result_dir"] + \
         "training_config_l_win_{}_auto_dims_{}.json".format(
             config["l_win"], config["autoencoder_dims"])
-    config_to_save = json.dumps(config)
-    f = open(filename, "w")
-    f.write(config_to_save)
-    f.close()
-
+    with open(filename, 'w', encoding='utf-8') as f:
+        json.dump(config, f, indent=4)
 
 def process_config(json_file):
     config = get_config_from_json(json_file)
