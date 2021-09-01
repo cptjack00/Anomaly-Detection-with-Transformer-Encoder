@@ -3,9 +3,9 @@ import time
 import torch
 from torch.utils.data.dataloader import DataLoader
 
-from data_loader import CustomDataset
-from models import make_autoencoder_model, make_transformer_model
-from utils import create_dirs, get_args, process_config, save_config
+from .data_loader import CustomDataset
+from .models import make_autoencoder_model, make_transformer_model
+from .utils import create_dirs, get_args, process_config, save_config
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
@@ -60,7 +60,7 @@ def trans_train_epoch(train_iter, model, autoencoder, criterion, mask, opt, epoc
 
     if len(batch_loss) > 0:
         epoch_trans_loss.append(sum(batch_loss)/len(batch_loss))
-        logging.info('TRANSFORMER. Epoch: {} \tTotal Loss: {:.6f}'.format(epoch,
+        print('TRANSFORMER. Epoch: {} \tTotal Loss: {:.6f}'.format(epoch,
                                                                           epoch_trans_loss[-1]))
 
     if epoch_trans_loss[-1] < min_trans_loss:
@@ -96,7 +96,7 @@ def autoencoder_train_epoch(train_iter, model, criterion, opt, epoch, config):
 
     if len(batch_loss) > 0:
         epoch_auto_loss.append(sum(batch_loss)/len(batch_loss))
-        logging.info('AUTOENCODER. Epoch: {} \tTotal Loss: {:.6f}'.format(epoch,
+        print('AUTOENCODER. Epoch: {} \tTotal Loss: {:.6f}'.format(epoch,
                                                                           epoch_auto_loss[-1]))
 
     if epoch_auto_loss[-1] < min_auto_loss:
