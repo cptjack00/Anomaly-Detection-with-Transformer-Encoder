@@ -3,9 +3,9 @@ import time
 import torch
 from torch.utils.data.dataloader import DataLoader
 
-from .data_loader import CustomDataset
-from .models import make_autoencoder_model, make_transformer_model
-from .utils import create_dirs, get_args, process_config, save_config
+from data_loader import CustomDataset
+from models import make_autoencoder_model, make_transformer_model
+from utils import create_dirs, get_args, process_config, save_config
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 

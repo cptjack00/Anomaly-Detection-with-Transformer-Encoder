@@ -1,0 +1,21 @@
+{
+    "experiment": "SCADA1_CEN_AUTO_1stacks_128dff_200auto_100trans_0_005lr_32batch",
+    "data_dir": "scada1",
+    "auto_dataset": "scada1",
+    "trans_dataset": "new_scada1",
+    "num_stacks": 1,
+    "d_model": 16,
+    "d_ff": 128,
+    "num_heads": 1,
+    "dropout": 0.1,
+    "autoencoder_dims": 200,
+    "l_win": 100,
+    "pre_mask": 40,
+    "post_mask": 60,
+    "batch_size": 32,
+    "shuffle": 1,
+    "dataloader_num_workers": 10,
+    "auto_num_epoch": 10,
+    "trans_num_epoch": 15,
+    "load_dir": "default"
+}

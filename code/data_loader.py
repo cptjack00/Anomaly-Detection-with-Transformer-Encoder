@@ -15,7 +15,7 @@ class CustomDataset(Dataset):
 
     def __len__(self):
         return self.rolling_windows.shape[0]
-    
+ 
     def __getitem__(self, index):
         if (self.train) or (self.model_type == "autoencoder"):
             inp = target = self.rolling_windows[index, :, :]
