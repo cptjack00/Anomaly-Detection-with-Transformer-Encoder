@@ -1,5 +1,7 @@
 import math
 import time
+import os
+import glob
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -205,6 +207,11 @@ def main():
     except:
         print("Missing or invalid arguments")
         exit(0)
+    testing_config_path = os.path.join("../experiments/{}/{}/".format(config["experiment"], config["auto_dataset"]), "result/")
+    try:
+        config = process_config(os.path.join(testing_config_path, os.listdir(testing_config_path)[0]))
+    except Exception as ex:
+        print("NO CONFIG OR HAS NOT BEEN TRAINED YET!!!")
     dataset = CustomDataset(config, train=False)
     data_loader = create_dataloader(dataset, config)
     encoder, trans_model = load_model(config)
@@ -243,7 +250,7 @@ def main():
     # print(idx_detection)
     idx_detection_augmented = augment_detected_idx(idx_detection, anomaly_index)
     # print(anomaly_index_lstm)
-    print(idx_detection_augmented)
+    # print(idx_detection_augmented)
     precision, recall, F1, _, n_TP, n_FP, n_FN = compute_precision_and_recall(idx_detection_augmented,
                                                                               test_labels)
     config["precision"] = precision
@@ -251,13 +258,13 @@ def main():
     config["F1"] = F1
     config["inference_time"] = (time.time() - start) / 60
     save_config(config)
-    # print("\nPR evaluation using KQE:")
-    # print("Precision: {}".format(precision))
-    # print("Recall: {}".format(recall))
-    # print("F1: {}".format(F1))
-    # print("TP: {}".format(n_TP))
-    # print("FP: {}".format(n_FP))
-    # print("FN: {}".format(n_FN))
+    print("\nPR evaluation using KQE:")
+    print("Precision: {}".format(precision))
+    print("Recall: {}".format(recall))
+    print("F1: {}".format(F1))
+    print("TP: {}".format(n_TP))
+    print("FP: {}".format(n_FP))
+    print("FN: {}".format(n_FN))
 
 if __name__ == '__main__':
     main()

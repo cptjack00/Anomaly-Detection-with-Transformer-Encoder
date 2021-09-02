@@ -146,7 +146,7 @@ def main():
     start = time.time()
     mask = create_mask(config)
     trans_model = make_transformer_model(N=config["num_stacks"],
-                                         d_model=len(dataset),
+                                         d_model=config["d_model"],
                                          l_win=config["l_win"],
                                          d_ff=128,
                                          h=1,

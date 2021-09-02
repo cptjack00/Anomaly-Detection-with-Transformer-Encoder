@@ -5,7 +5,7 @@ data/
 models/
 code/__pycache__/
 .ipynb_checkpoints/
-experiments/
+checkpoints/
 Dockerfile
 make.sh
 get-pip.py
