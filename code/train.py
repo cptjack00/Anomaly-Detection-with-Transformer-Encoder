@@ -148,9 +148,9 @@ def main():
     trans_model = make_transformer_model(N=config["num_stacks"],
                                          d_model=config["d_model"],
                                          l_win=config["l_win"],
-                                         d_ff=128,
-                                         h=1,
-                                         dropout=0.1)
+                                         d_ff=config["d_ff"],
+                                         h=config["num_heads"],
+                                         dropout=config["dropout"])
     trans_model.float()
     model_opt = torch.optim.Adam(trans_model.parameters())
     autoencoder_model.load_state_dict(
