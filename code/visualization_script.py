@@ -93,6 +93,7 @@ def visualize_dims(num_stacks):
         plt.plot(l, out_df_scada["F1"].to_numpy(), color_list[2], marker=".", label="F1")
         plt.plot(l, out_df_scada["AUC"].to_numpy(), color_list[3], marker=".", label="AUC")
         plt.legend()
+        plt.ylim(0., 1.)
         ax.set_xticklabels(rotation = (45), fontsize = 8, va='bottom', ha='left', labels=l)
         plt.title("Performance by model dims (stacks = {})".format(num_stacks))
         fig.savefig(OUTPUT_FILE_SCADA)
