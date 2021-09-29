@@ -1,7 +1,6 @@
 import math
 import time
 import os
-import glob
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -13,6 +12,7 @@ from data_loader import CustomDataset
 from models import make_autoencoder_model, make_transformer_model
 from train import create_dataloader, create_mask
 from utils import get_args, process_config, save_config
+
 
 def load_model(config):
     autoencoder_model = make_autoencoder_model(in_seq_len=config["autoencoder_dims"],
@@ -36,6 +36,7 @@ def load_model(config):
 
     return autoencoder_model.encoder, trans_model
 
+
 def create_labels(idx_anomaly_test, n_test, config):
     anomaly_index = []
     test_labels = np.zeros(n_test)
@@ -50,6 +51,7 @@ def create_labels(idx_anomaly_test, n_test, config):
         test_labels[idx_start:idx_end] = 1
     return anomaly_index, test_labels
 
+
 def return_anomaly_idx_by_threshold(test_anomaly_metric, threshold):
     # test_list = np.squeeze(np.ndarray.flatten(test_anomaly_metric))
     idx_error = np.squeeze(np.argwhere(test_anomaly_metric > threshold))
@@ -58,6 +60,7 @@ def return_anomaly_idx_by_threshold(test_anomaly_metric, threshold):
         idx_error = np.expand_dims(idx_error, 0)
 
     return list(idx_error)
+
 
 def augment_detected_idx(idx_detected_anomaly, anomaly_index):
     n_anomaly = len(anomaly_index)
@@ -73,6 +76,7 @@ def augment_detected_idx(idx_detected_anomaly, anomaly_index):
                 # print(j)
                 break
     return list(np.sort(idx_detected_anomaly_extended))
+
 
 def count_TP_FP_FN(idx_detected_anomaly, test_labels):
     n_TP = 0
@@ -95,6 +99,7 @@ def count_TP_FP_FN(idx_detected_anomaly, test_labels):
     n_TN = len(test_labels) - n_TP - n_FP - n_FN
     return n_TP, n_FP, n_FN, n_TN
 
+
 def compute_precision_and_recall(idx_detected_anomaly, test_labels):
     # compute true positive
     n_TP, n_FP, n_FN, n_TN = count_TP_FP_FN(idx_detected_anomaly, test_labels)
@@ -112,6 +117,7 @@ def compute_precision_and_recall(idx_detected_anomaly, test_labels):
 
     return precision, recall, F1, fpr, n_TP, n_FP, n_FN
 
+
 def KQp(data, q):
     data2 = np.sort(data)  # sap xep tang dan
     n = np.shape(data2)[0]  # kich thuoc
@@ -123,8 +129,9 @@ def KQp(data, q):
         b = (((i-1)/n)-p)/h
         TP = (norm.cdf(a)-norm.cdf(b))*data2[i-1]  # normcdf thu trong matlab
         KQ = KQ+TP
-    #KQp = KQ;
+    # KQp = KQ;
     return KQ
+
 
 def plot_roc_curve(fpr_aug, recall_aug, config, n_threshold=20):
     tpr = np.insert(recall_aug, [0, n_threshold], [0, 1])
@@ -145,13 +152,11 @@ def plot_roc_curve(fpr_aug, recall_aug, config, n_threshold=20):
     plt.savefig(config["result_dir"] + "augmentedroc.pdf")
     return auc
 
+
 def select_threshold(recon_loss, anomaly_index, test_labels, config, n_threshold=20):
     """
     Select best threshold based on best F1-score
     """
-    precision = np.zeros(n_threshold)
-    recall = np.zeros(n_threshold)
-    F1 = np.zeros(n_threshold)
     precision_aug = np.zeros(n_threshold)
     recall_aug = np.zeros(n_threshold)
     F1_aug = np.zeros(n_threshold)
@@ -172,7 +177,7 @@ def select_threshold(recon_loss, anomaly_index, test_labels, config, n_threshold
         precision_aug[i], recall_aug[i], F1_aug[i], fpr_aug[i], _, _, _ = compute_precision_and_recall(idx_detection_augmented,
                                                                                                        test_labels)
         i = i + 1
-        #print(precision, recall, F1)
+        # print(precision, recall, F1)
 
     auc = plot_roc_curve(fpr_aug, recall_aug, config)
 
@@ -185,14 +190,14 @@ def select_threshold(recon_loss, anomaly_index, test_labels, config, n_threshold
                                                                     recall_aug[idx_best_threshold]))
     return best_thres, auc
 
+
 def select_KQp_threshold(threshold, recon_loss):
     q_list = [0.99, 0.9, 0.1]
     temp = math.inf
     q_best = 0
-    closest_thres = 0
     for q in q_list:
         temp_thres = KQp(recon_loss, q)
-        #print(temp_thres,abs(temp_thres - threshold))
+        # print(temp_thres,abs(temp_thres - threshold))
         if abs(temp_thres - threshold) < temp:
             temp = abs(temp_thres - threshold)
             q_best = q
@@ -200,6 +205,8 @@ def select_KQp_threshold(threshold, recon_loss):
     print("Closest KQp threshold is {} at q = {}".format(KQp_thres, q_best))
     return KQp_thres, q_best
 
+
+@torch.no_grad()
 def main():
     try:
         args = get_args()
@@ -210,7 +217,7 @@ def main():
     testing_config_path = os.path.join("../experiments/{}/{}/".format(config["experiment"], config["auto_dataset"]), "result/")
     try:
         config = process_config(os.path.join(testing_config_path, os.listdir(testing_config_path)[0]))
-    except Exception as ex:
+    except:
         print("NO CONFIG OR HAS NOT BEEN TRAINED YET!!!")
     dataset = CustomDataset(config, train=False)
     data_loader = create_dataloader(dataset, config)
@@ -265,6 +272,7 @@ def main():
     print("TP: {}".format(n_TP))
     print("FP: {}".format(n_FP))
     print("FN: {}".format(n_FN))
+
 
 if __name__ == '__main__':
     main()
