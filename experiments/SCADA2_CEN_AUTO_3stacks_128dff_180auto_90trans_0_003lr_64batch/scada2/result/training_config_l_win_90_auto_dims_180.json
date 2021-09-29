@@ -24,5 +24,11 @@
     "best_auto_model": "best_autoencoder_8.pth",
     "auto_train_time": 25.66767322619756,
     "best_trans_model": "best_trans_14.pth",
-    "trans_train_time": 41.78006393114726
+    "trans_train_time": 41.78006393114726,
+    "AUC": 0.9961944125621506,
+    "q_best": 0.1,
+    "precision": 0.983425507236632,
+    "recall": 1.0,
+    "F1": 0.9916435012543223,
+    "inference_time": 67.39642161925634
 }
