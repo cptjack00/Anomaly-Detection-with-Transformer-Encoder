@@ -28,7 +28,7 @@ def process_config(json_file):
 
     # create directories to save experiment results and trained models
     if config["load_dir"] == "default":
-        save_dir = "../experiments/{}/{}".format(
+        save_dir = "../experiments/{}/{}/{}".format("Transformer", 
             config["experiment"], config["auto_dataset"])
     else:
         save_dir = config["load_dir"]
