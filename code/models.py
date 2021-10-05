@@ -6,6 +6,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.autograd import Variable
 from torch.nn.modules.normalization import LayerNorm
+from functools import partial
 
 """ This code is a slightly modified version of The Annotated Transformer."""
 
@@ -81,7 +82,6 @@ class TransformerEncoderLayer(nn.Module):
 
 
 def attention(query, key, value, mask=None, dropout=0.0):
-    """Compute the Scaled Dot-Product Attention"""
     d_k = query.size(-1)
     scores = torch.matmul(query, key.transpose(-2, -1)) / math.sqrt(d_k)
     if mask is not None:
@@ -91,8 +91,62 @@ def attention(query, key, value, mask=None, dropout=0.0):
     return torch.matmul(p_attn, value), p_attn
 
 
+# Performer code from performer-pytorch library
+def generalized_kernel(data, projection_matrix, kernel_fn=nn.ReLU(), kernel_epsilon=0.001):
+    b, h, *_ = data.shape
+    if projection_matrix is None:
+        return kernel_fn(data) + kernel_epsilon
+    projection = projection_matrix.repeat(b, h, 1, 1)
+    projection = projection.type_as(data)
+
+    data_dash = torch.einsum('...id, ...jd->...ij', data, projection)
+    data_prime = kernel_fn(data_dash) + kernel_epsilon
+    return data_prime.type_as(data)
+
+
+def orthogonal_matrix_chunk(cols):
+    unstructured_block = torch.randn((cols, cols))
+    q, _ = torch.qr(unstructured_block.cpu(), some=True)
+    return q.t()
+
+
+def gaussian_orthogonal_random_matrix(nb_rows, nb_columns, scaling=0):
+    nb_full_blocks = int(nb_rows / nb_columns)
+    block_list = []
+    for _ in range(nb_full_blocks):
+        q = orthogonal_matrix_chunk(nb_columns)
+        block_list.append(q)
+
+    remaining_rows = nb_rows - nb_full_blocks * nb_columns
+    if remaining_rows > 0:
+        q = orthogonal_matrix_chunk(nb_columns)
+        block_list.append(q[:remaining_rows])
+
+    final_matrix = torch.cat(block_list)
+
+    if scaling == 0:
+        multiplier = torch.randn((nb_rows, nb_columns)).norm(dim = 1)
+    elif scaling == 1:
+        multiplier = math.sqrt((float(nb_columns))) * torch.ones((nb_rows, ))
+    else:
+        raise ValueError(f"Invalid Scaling {scaling}")
+
+    return torch.diag(multiplier) @ final_matrix
+
+
+def fast_attention(q, k, v, mask=None, dropout=0.1):
+    if mask is not None:
+        q, k, v = lambda t: t.masked_fill(mask == 0, 0)
+    k_cumsum = k.sum(dim = -2)
+    D_inv = 1. / torch.einsum('...nd,...d->...n', q, k_cumsum.type_as(q))
+    context = torch.einsum('...nd,...ne->...de', k, v)
+    out = torch.einsum('...de,...nd,...n->...ne', context, q, D_inv)
+    out = F.dropout(out, p=dropout)
+    return out, context
+
+
 class MultiHeadAttention(nn.Module):
-    def __init__(self, h, d_model, dropout=0.1):
+    def __init__(self, h, d_model, dropout=0.1, fast_attention=False):
         """
         Take in model size and number of heads.
         """
@@ -103,6 +157,7 @@ class MultiHeadAttention(nn.Module):
         self.p = dropout
         self.linears = clones(nn.Linear(d_model, d_model), 4)
         self.attn = None
+        self.fast_attention = fast_attention
 
     def forward(self, query, key, value, mask=None):
         if mask is not None:
@@ -112,8 +167,16 @@ class MultiHeadAttention(nn.Module):
         # 1) Do all the linear projections in batch from d_model => h x d_k
         query, key, value = [l(x).view(nbatches, -1, self.h, self.d_k).transpose(1, 2)
                              for l, x in zip(self.linears, (query, key, value))]
+        if self.fast_attention:
+            projection_matrix = gaussian_orthogonal_random_matrix(nb_rows=self.d_k, nb_columns=self.h, scaling=0)
+            self.register_buffer('projection_matrix', projection_matrix)
+            create_kernel = partial(generalized_kernel, projection_matrix=projection_matrix)
+            query, key = map(create_kernel, (query, key))
         # 2) Apply attention on all the projected vectors in batch
-        x, self.attn = attention(query, key, value, mask=mask, dropout=self.p)
+        if self.fast_attention:
+            x, self.attn = fast_attention(query, key, value, mask, dropout=self.p)
+        else:
+            x, self.attn = attention(query, key, value, mask=mask, dropout=self.p)
         # 3) "Concat" using a view and apply a final linear
         x = x.transpose(1, 2).contiguous().view(
             nbatches, -1, self.h * self.d_k)
@@ -225,11 +288,11 @@ class Autoencoder(nn.Module):
         return output
 
 
-def make_transformer_model(N, d_model, l_win, d_ff=0, h=8, dropout=0.1):
+def make_transformer_model(N, d_model, l_win, d_ff=0, h=8, dropout=0.1, fast_attention=False):
     if (d_ff == 0):
         d_ff = d_model * 4
     c = copy.deepcopy
-    attn = MultiHeadAttention(h, d_model, dropout)
+    attn = MultiHeadAttention(h, d_model, dropout, fast_attention=fast_attention)
     ff = PositionwiseFeedForward(d_model, d_ff, dropout)
     position = PositionalEncoding(d_model, dropout, l_win)
     final_linear = nn.Linear(d_model, d_model)
@@ -244,6 +307,9 @@ def make_transformer_model(N, d_model, l_win, d_ff=0, h=8, dropout=0.1):
         if p.dim() > 1:
             nn.init.xavier_uniform_(p)
     return model
+
+
+make_performer_model = partial(make_transformer_model, fast_attention=True)
 
 
 def make_autoencoder_model(in_seq_len, out_seq_len, d_model, dropout=0.1):

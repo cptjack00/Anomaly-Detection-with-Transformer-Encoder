@@ -4,7 +4,7 @@ import torch
 from torch.utils.data.dataloader import DataLoader
 
 from data_loader import CustomDataset
-from models import make_autoencoder_model, make_transformer_model
+from models import make_autoencoder_model, make_transformer_model, make_performer_model
 from utils import create_dirs, get_args, process_config, save_config
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -145,7 +145,7 @@ def main():
     # Training the transformer model
     start = time.time()
     mask = create_mask(config)
-    trans_model = make_transformer_model(N=config["num_stacks"],
+    trans_model = make_performer_model(N=config["num_stacks"],
                                          d_model=config["d_model"],
                                          l_win=config["l_win"],
                                          d_ff=config["d_ff"],
