@@ -9,7 +9,7 @@ from scipy.stats import norm
 from sklearn import metrics
 
 from data_loader import CustomDataset
-from models import make_autoencoder_model, make_transformer_model
+from models import make_autoencoder_model, make_transformer_model, make_performer_model
 from train import create_dataloader, create_mask
 from utils import get_args, process_config, save_config
 
@@ -23,7 +23,7 @@ def load_model(config):
     autoencoder_model.float()
     autoencoder_model.eval()
 
-    trans_model = make_transformer_model(N=config["num_stacks"],
+    trans_model = make_performer_model(N=config["num_stacks"],
                                          d_model=config["d_model"],
                                          l_win=config["l_win"],
                                          d_ff=config["d_ff"],
