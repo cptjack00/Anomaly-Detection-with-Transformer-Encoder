@@ -106,7 +106,7 @@ def generalized_kernel(data, projection_matrix, kernel_fn=nn.ReLU(), kernel_epsi
 
 def orthogonal_matrix_chunk(cols):
     unstructured_block = torch.randn((cols, cols))
-    q, _ = torch.qr(unstructured_block.cpu(), some=True)
+    q, _ = torch.linalg.qr(unstructured_block.cpu(), 'reduced')
     return q.t()
 
 
@@ -135,12 +135,12 @@ def gaussian_orthogonal_random_matrix(nb_rows, nb_columns, scaling=0):
 
 
 def fast_attention(q, k, v, mask=None, dropout=0.1):
-    if mask is not None:
-        q, k, v = lambda t: t.masked_fill(mask == 0, 0)
     k_cumsum = k.sum(dim = -2)
     D_inv = 1. / torch.einsum('...nd,...d->...n', q, k_cumsum.type_as(q))
     context = torch.einsum('...nd,...ne->...de', k, v)
     out = torch.einsum('...de,...nd,...n->...ne', context, q, D_inv)
+    if mask is not None:
+        out  = out.masked_fill(mask == 0, -1e9)
     out = F.dropout(out, p=dropout)
     return out, context
 
@@ -169,7 +169,6 @@ class MultiHeadAttention(nn.Module):
                              for l, x in zip(self.linears, (query, key, value))]
         if self.fast_attention:
             projection_matrix = gaussian_orthogonal_random_matrix(nb_rows=self.d_k, nb_columns=self.h, scaling=0)
-            self.register_buffer('projection_matrix', projection_matrix)
             create_kernel = partial(generalized_kernel, projection_matrix=projection_matrix)
             query, key = map(create_kernel, (query, key))
         # 2) Apply attention on all the projected vectors in batch

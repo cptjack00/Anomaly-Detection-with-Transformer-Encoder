@@ -7,6 +7,9 @@ from data_loader import CustomDataset
 from models import make_autoencoder_model, make_transformer_model, make_performer_model
 from utils import create_dirs, get_args, process_config, save_config
 
+torch.manual_seed(0)
+torch.use_deterministic_algorithms(True)
+
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 def create_dataloader(dataset, config):
@@ -24,9 +27,8 @@ def loss_backprop(criterion, out, targets):
 
 
 def create_mask(config):
-    mask = torch.ones(1, config["l_win"], config["l_win"])
+    mask = torch.ones(1, config["l_win"], config["d_model"])
     mask[:, config["pre_mask"]:config["post_mask"], :] = 0
-    mask[:, :, config["pre_mask"]:config["post_mask"]] = 0
     mask = mask.float().masked_fill(mask == 0, float(
         "-inf")).masked_fill(mask == 1, float(0))
     return mask
