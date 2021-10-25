@@ -214,7 +214,7 @@ def main():
     except:
         print("Missing or invalid arguments")
         exit(0)
-    testing_config_path = os.path.join("../experiments/{}/{}/".format(config["experiment"], config["auto_dataset"]), "result/")
+    testing_config_path = os.path.join("../experiments/{}/{}/{}".format("FNet-Hybrid", config["experiment"], config["auto_dataset"]), "result/")
     try:
         config = process_config(os.path.join(testing_config_path, os.listdir(testing_config_path)[0]))
     except:
