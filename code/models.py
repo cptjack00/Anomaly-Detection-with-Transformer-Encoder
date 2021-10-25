@@ -94,7 +94,7 @@ def attention(query, key, value, mask=None, dropout=0.0):
 class MultiHeadAttention(nn.Module):
     def __init__(self, h, d_model, dropout=0.1):
         """
-        Take in model size and number of heads.
+        Takes in model size and number of heads.
         """
         super().__init__()
         assert d_model % h == 0
@@ -135,7 +135,7 @@ class PositionwiseFeedForward(nn.Module):
 
 
 class PositionalEncoding(nn.Module):
-    """ Implement the PE function. """
+    """ Implements the PE function. """
 
     def __init__(self, d_model, dropout, max_len=5000):
         super().__init__()
@@ -156,7 +156,67 @@ class PositionalEncoding(nn.Module):
         return self.dropout(x)
 
 
+class FNetHybridModel(nn.Module):
+    def __init__(self, trans, src_embed, linear, fnet):
+        super().__init__()
+        self.trans = trans
+        self.src_embed = src_embed
+        self.linear = linear
+        self.fnet = fnet
+
+    def forward(self, src, src_mask):
+        output = F.relu(self.linear(self.fnet(
+            self.trans(self.src_embed(src), src_mask))))
+        return output
+
+
+class FNetEncoder(nn.Module):
+    "Core Fnet is a stack of N layers"
+
+    def __init__(self, layer, N):
+        super().__init__()
+        self.layers = clones(layer, N)
+        self.norm = LayerNorm(layer.size)
+
+    def forward(self, x):
+        "Pass the input through each layer in turn"
+        for layer in self.layers:
+            x = layer(x)
+        return self.norm(x)
+
+
+
+class FNetEncoderLayer(nn.Module):
+    """
+    Encoder is made up of a Fourier Mixing Layer and a FF Layer
+    """
+
+    def __init__(self, size, fft, feed_forward, dropout):
+        super().__init__()
+        self.fft = fft
+        self.feed_forward = feed_forward
+        self.sublayer = clones(SublayerConnection(size, dropout), 2)
+        self.size = size
+
+    def forward(self, x):
+        x = self.sublayer[0](x, lambda x: self.fft(x, x, x))
+        return self.sublayer[1](x, self.feed_forward)
+
+
+class FourierFFTLayer(nn.Module):
+    def __init__(self):
+        super().__init__()
+
+    def forward(self, query, key, value):
+        assert query is key
+        assert key is value
+
+        x = query
+        return torch.real(torch.fft.fft(torch.fft.fft(x, dim=-1), dim=-2))
+
+
 class Encoder(nn.Module):
+    """Implements the Autoencoder's encoder"""
     def __init__(self, in_seq_len, out_seq_len, d_model, dropout=0.1):
         super().__init__()
         self.in_seq_len = in_seq_len
@@ -185,7 +245,9 @@ class Encoder(nn.Module):
         return x
 
 
+
 class Decoder(nn.Module):
+    """Implements the Autoencoder's decoder"""
     def __init__(self, in_seq_len, out_seq_len, d_model, dropout=0.1):
         super().__init__()
         self.in_seq_len = in_seq_len
@@ -244,6 +306,25 @@ def make_transformer_model(N, d_model, l_win, d_ff=0, h=8, dropout=0.1):
         if p.dim() > 1:
             nn.init.xavier_uniform_(p)
     return model
+
+
+def make_fnet_hybrid_model(N, d_model, l_win, d_ff=0, h=8, dropout=0.1):
+    if (d_ff == 0):
+        d_ff = d_model * 4
+    c = copy.deepcopy
+    attn = MultiHeadAttention(h, d_model, dropout)
+    ff = PositionwiseFeedForward(d_model, d_ff, dropout)
+    position = PositionalEncoding(d_model, dropout, l_win)
+    final_linear = nn.Linear(d_model, d_model)
+    fft = FourierFFTLayer()
+    model = FNetHybridModel(
+        TransformerEncoder(TransformerEncoderLayer(
+            d_model, c(attn), c(ff), dropout), 1),
+        nn.Sequential(position),
+        final_linear,
+        FNetEncoder(FNetEncoderLayer(d_model, c(fft), c(ff), dropout), N - 1)
+    )
+
 
 
 def make_autoencoder_model(in_seq_len, out_seq_len, d_model, dropout=0.1):
