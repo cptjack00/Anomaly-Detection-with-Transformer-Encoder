@@ -32,12 +32,12 @@ def create_mask(config):
     return mask
 
 
-min_trans_loss = float("inf")
-best_trans_model = None
-epoch_trans_loss = list()
+min_hybrid_loss = float("inf")
+best_hybrid_model = None
+epoch_hybrid_loss = list()
 
-def trans_train_epoch(train_iter, model, autoencoder, criterion, mask, opt, epoch, config):
-    global min_trans_loss, best_trans_model, epoch_trans_loss
+def hybrid_train_epoch(train_iter, model, autoencoder, criterion, mask, opt, epoch, config):
+    global min_hybrid_loss, best_hybrid_model, epoch_hybrid_loss
     model.train()
     model.to(device)
     autoencoder.eval()
@@ -59,19 +59,19 @@ def trans_train_epoch(train_iter, model, autoencoder, criterion, mask, opt, epoc
         batch_loss.append(loss.item())
 
     if len(batch_loss) > 0:
-        epoch_trans_loss.append(sum(batch_loss)/len(batch_loss))
-        print('TRANSFORMER. Epoch: {} \tTotal Loss: {:.6f}'.format(epoch,
-                                                                          epoch_trans_loss[-1]))
+        epoch_hybrid_loss.append(sum(batch_loss)/len(batch_loss))
+        print('hybridFORMER. Epoch: {} \tTotal Loss: {:.6f}'.format(epoch,
+                                                                          epoch_hybrid_loss[-1]))
 
-    if epoch_trans_loss[-1] < min_trans_loss:
+    if epoch_hybrid_loss[-1] < min_hybrid_loss:
         torch.save(model.state_dict(),
-                   config["checkpoint_dir"] + f"best_trans_{epoch}.pth")
+                   config["checkpoint_dir"] + f"best_hybrid_{epoch}.pth")
         torch.save(opt.state_dict(),
-                   config["checkpoint_dir"] + f"optimizer_trans_{epoch}.pth")
-        min_trans_loss = epoch_trans_loss[-1]
-        best_trans_model = f"best_trans_{epoch}.pth"
-    if best_trans_model != None:
-        return best_trans_model
+                   config["checkpoint_dir"] + f"optimizer_hybrid_{epoch}.pth")
+        min_hybrid_loss = epoch_hybrid_loss[-1]
+        best_hybrid_model = f"best_hybrid_{epoch}.pth"
+    if best_hybrid_model != None:
+        return best_hybrid_model
 
 
 min_auto_loss = float("inf")
@@ -142,7 +142,7 @@ def main():
     print("COMPLETED TRAINING THE AUTOENCODER")
     config["auto_train_time"] = (time.time() - start) / 60
 
-    # Training the transformer model
+    # Training the FNet-Hybrid model
     start = time.time()
     mask = create_mask(config)
     fnet_hybrid_model = make_fnet_hybrid_model(N=config["num_stacks"],
@@ -156,7 +156,7 @@ def main():
     autoencoder_model.load_state_dict(
         torch.load(config["checkpoint_dir"] + config["best_auto_model"]))
     for epoch in range(config["trans_num_epoch"]):
-        config["best_trans_model"] = trans_train_epoch(dataloader,
+        config["best_hybrid_model"] = hybrid_train_epoch(dataloader,
                                                        fnet_hybrid_model,
                                                        autoencoder_model,
                                                        criterion,
@@ -164,8 +164,8 @@ def main():
                                                        model_opt,
                                                        epoch,
                                                        config)
-    print("COMPLETED TRAINING THE TRANSFORMER")
-    config["trans_train_time"] = (time.time() - start) / 60
+    print("COMPLETED TRAINING THE FNET-HYBRID")
+    config["hybrid_train_time"] = (time.time() - start) / 60
     save_config(config)
 
 if __name__ == "__main__":

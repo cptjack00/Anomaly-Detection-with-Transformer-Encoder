@@ -23,18 +23,18 @@ def load_model(config):
     autoencoder_model.float()
     autoencoder_model.eval()
 
-    trans_model = make_fnet_hybrid_model(N=config["num_stacks"],
+    hybrid_model = make_fnet_hybrid_model(N=config["num_stacks"],
                                          d_model=config["d_model"],
                                          l_win=config["l_win"],
                                          d_ff=config["d_ff"],
                                          h=config["num_heads"],
                                          dropout=config["dropout"])
-    trans_model.load_state_dict(torch.load(
-        config["checkpoint_dir"] + config["best_trans_model"]))
-    trans_model.float()
-    trans_model.eval()
+    hybrid_model.load_state_dict(torch.load(
+        config["checkpoint_dir"] + config["best_hybrid_model"]))
+    hybrid_model.float()
+    hybrid_model.eval()
 
-    return autoencoder_model.encoder, trans_model
+    return autoencoder_model.encoder, hybrid_model
 
 
 def create_labels(idx_anomaly_test, n_test, config):
@@ -221,7 +221,7 @@ def main():
         print("NO CONFIG OR HAS NOT BEEN TRAINED YET!!!")
     dataset = CustomDataset(config, train=False)
     data_loader = create_dataloader(dataset, config)
-    encoder, trans_model = load_model(config)
+    encoder, hybrid_model = load_model(config)
     mask = create_mask(config)
     loss = torch.nn.MSELoss()
     n_test = len(dataset)
@@ -231,7 +231,7 @@ def main():
     for i, batch in enumerate(data_loader):
         src = encoder(batch["input"].float())
         trg = encoder(batch["target"].float())
-        out = trans_model(src, src_mask=mask)
+        out = hybrid_model(src, src_mask=mask)
         for j in range(config["batch_size"]):
             try:
                 recon_loss[i * config["batch_size"] + j] = loss(
