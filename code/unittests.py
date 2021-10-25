@@ -5,7 +5,7 @@ import numpy as np
 from torch.autograd import Variable
 from train import create_dataloader
 from utils import process_config, create_dirs, get_args, save_config
-from models import make_transformer_model, PositionalEncoding, make_autoencoder_model
+from models import make_fnet_hybrid_model, PositionalEncoding, make_autoencoder_model
 import matplotlib.pyplot as plt
 
 config = {"dataset": "scada1_1", "l_win": 200, "pre_mask": 80, "post_mask": 120,
@@ -27,7 +27,7 @@ def test_dataset():
 
 
 def test_model():
-    model = make_transformer_model(
+    model = make_fnet_hybrid_model(
         N=6, d_model=16, l_win=config["l_win"], d_ff=128, h=8, dropout=0.2)
     model.float()
     dataloader = test_dataloader()

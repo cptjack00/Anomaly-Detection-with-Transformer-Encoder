@@ -287,7 +287,7 @@ class Autoencoder(nn.Module):
         return output
 
 
-def make_transformer_model(N, d_model, l_win, d_ff=0, h=8, dropout=0.1):
+def make_trans_hybrid_model(N, d_model, l_win, d_ff=0, h=8, dropout=0.1):
     if (d_ff == 0):
         d_ff = d_model * 4
     c = copy.deepcopy
@@ -325,6 +325,10 @@ def make_fnet_hybrid_model(N, d_model, l_win, d_ff=0, h=8, dropout=0.1):
         FNetEncoder(FNetEncoderLayer(d_model, c(fft), c(ff), dropout), N - 1)
     )
 
+    for p in model.parameters():
+        if p.dim() > 1:
+            nn.init.xavier_uniform_(p)
+    return model
 
 
 def make_autoencoder_model(in_seq_len, out_seq_len, d_model, dropout=0.1):
