@@ -13,6 +13,7 @@ from models import make_autoencoder_model, make_fnet_hybrid_model
 from train import create_dataloader, create_mask
 from utils import get_args, process_config, save_config
 
+device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 def load_model(config):
     autoencoder_model = make_autoencoder_model(in_seq_len=config["autoencoder_dims"],
@@ -222,6 +223,8 @@ def main():
     dataset = CustomDataset(config, train=False)
     data_loader = create_dataloader(dataset, config)
     encoder, hybrid_model = load_model(config)
+    encoder.to(device)
+    hybrid_model.to(device)
     mask = create_mask(config)
     loss = torch.nn.MSELoss()
     n_test = len(dataset)
@@ -229,8 +232,10 @@ def main():
 
     start = time.time()
     for i, batch in enumerate(data_loader):
-        src = encoder(batch["input"].float())
-        trg = encoder(batch["target"].float())
+        src = batch["input"].float().to(device)
+        src = encoder(src)
+        trg = batch["target"].float().to(device)
+        trg = encoder(trg)
         out = hybrid_model(src, src_mask=mask)
         for j in range(config["batch_size"]):
             try:

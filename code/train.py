@@ -85,9 +85,9 @@ def autoencoder_train_epoch(train_iter, model, criterion, opt, epoch, config):
     batch_loss = list()
     for i, batch in enumerate(train_iter):
         src = batch["input"].float()
-        src.to(device)
+        src = src.to(device)
         trg = batch["target"].float()
-        trg.to(device)
+        trg = trg.to(device)
         out = model(src)
         opt.zero_grad()
         loss = loss_backprop(criterion, out, trg)
