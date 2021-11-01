@@ -2,6 +2,7 @@ import argparse
 import json
 import os
 
+SAVE_FOLDER="FNet-Hybrid-GPU"
 
 def get_config_from_json(json_file):
     """
@@ -28,7 +29,7 @@ def process_config(json_file):
 
     # create directories to save experiment results and trained models
     if config["load_dir"] == "default":
-        save_dir = "../experiments/{}/{}/{}".format("FNet-Hybrid",
+        save_dir = "../experiments/{}/{}/{}".format(SAVE_FOLDER,
             config["experiment"], config["auto_dataset"])
     else:
         save_dir = config["load_dir"]

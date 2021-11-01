@@ -3,15 +3,17 @@ import time
 import os
 
 import matplotlib.pyplot as plt
+from numba.np.ufunc import parallel
 import numpy as np
 import torch
 from scipy.stats import norm
 from sklearn import metrics
+from numba import jit
 
 from data_loader import CustomDataset
 from models import make_autoencoder_model, make_fnet_hybrid_model
 from train import create_dataloader, create_mask
-from utils import get_args, process_config, save_config
+from utils import SAVE_FOLDER, get_args, process_config, save_config
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
@@ -42,8 +44,8 @@ def create_labels(idx_anomaly_test, n_test, config):
     anomaly_index = []
     test_labels = np.zeros(n_test)
     for i in range(len(idx_anomaly_test)):
-        idx_start = idx_anomaly_test[i] - (config["l_win"] + 1)
-        idx_end = idx_anomaly_test[i] + (config["l_win"] + 1)
+        idx_start = idx_anomaly_test[i] - config["l_win"] + 1
+        idx_end = idx_anomaly_test[i] + 1
         if idx_start < 0:
             idx_start = 0
         if idx_end > n_test:
@@ -63,6 +65,7 @@ def return_anomaly_idx_by_threshold(test_anomaly_metric, threshold):
     return list(idx_error)
 
 
+@jit(parallel=True)
 def augment_detected_idx(idx_detected_anomaly, anomaly_index):
     n_anomaly = len(anomaly_index)
     idx_detected_anomaly_extended = list(idx_detected_anomaly)
@@ -71,9 +74,9 @@ def augment_detected_idx(idx_detected_anomaly, anomaly_index):
         for j in idx_detected_anomaly:
             if j in anomaly_index[i]:
                 in_original_detection = set(idx_detected_anomaly_extended)
-                currect_anomaly_win = set(anomaly_index[i])
+                current_anomaly_win = set(anomaly_index[i])
                 idx_detected_anomaly_extended = idx_detected_anomaly_extended + \
-                    list(currect_anomaly_win - in_original_detection)
+                    list(current_anomaly_win - in_original_detection)
                 # print(j)
                 break
     return list(np.sort(idx_detected_anomaly_extended))
@@ -154,57 +157,72 @@ def plot_roc_curve(fpr_aug, recall_aug, config, n_threshold=20):
     return auc
 
 
-def select_threshold(recon_loss, anomaly_index, test_labels, config, n_threshold=20):
-    """
-    Select best threshold based on best F1-score
-    """
+# def select_threshold(recon_loss, anomaly_index, test_labels, config, n_threshold=20):
+#     """
+#     Select best threshold based on best F1-score
+#     """
+#     precision_aug = np.zeros(n_threshold)
+#     recall_aug = np.zeros(n_threshold)
+#     F1_aug = np.zeros(n_threshold)
+#     fpr_aug = np.zeros(n_threshold)
+#     i = 0
+#     threshold_list = np.linspace(np.amin(recon_loss), np.amax(
+#         recon_loss), n_threshold, endpoint=False)
+#     threshold_list = np.flip(threshold_list)
+# 
+#     for threshold in threshold_list:
+#         # print(threshold_list[i])
+#         idx_detection = return_anomaly_idx_by_threshold(recon_loss, threshold)
+#         # augment the detection using the ground truth labels
+#         # a method to discount the factor one anomaly appears in multiple consecutive windows
+#         # introduced in "Unsupervised anomaly detection via variational auto-encoder for seasonal kpis in web applications"
+#         idx_detection_augmented = augment_detected_idx(
+#             idx_detection, anomaly_index)
+#         precision_aug[i], recall_aug[i], F1_aug[i], fpr_aug[i], _, _, _ = compute_precision_and_recall(idx_detection_augmented,
+#                                                                                                        test_labels)
+#         i = i + 1
+#         # print(precision, recall, F1)
+# 
+#     auc = plot_roc_curve(fpr_aug, recall_aug, config)
+# 
+#     print("\nAugmented detection:")
+#     print("Best F1 score is {}".format(np.amax(F1_aug)))
+#     idx_best_threshold = np.squeeze(np.argwhere(F1_aug == np.amax(F1_aug)))
+#     print("Best threshold is {}".format(threshold_list[idx_best_threshold]))
+#     best_thres = np.min(threshold_list[idx_best_threshold])
+#     print("At this threshold, precision is {}, recall is {}".format(precision_aug[idx_best_threshold],
+#                                                                     recall_aug[idx_best_threshold]))
+#     return best_thres, auc
+
+
+def select_KQp_threshold(recon_loss, anomaly_index, test_labels, config):
+    q_list = [0.99, 0.9, 0.1, 0.01]
+    n_threshold = len(q_list)
     precision_aug = np.zeros(n_threshold)
     recall_aug = np.zeros(n_threshold)
     F1_aug = np.zeros(n_threshold)
     fpr_aug = np.zeros(n_threshold)
-    i = 0
-    threshold_list = np.linspace(np.amin(recon_loss), np.amax(
-        recon_loss), n_threshold, endpoint=False)
-    threshold_list = np.flip(threshold_list)
-
-    for threshold in threshold_list:
-        # print(threshold_list[i])
-        idx_detection = return_anomaly_idx_by_threshold(recon_loss, threshold)
-        # augment the detection using the ground truth labels
-        # a method to discount the factor one anomaly appears in multiple consecutive windows
-        # introduced in "Unsupervised anomaly detection via variational auto-encoder for seasonal kpis in web applications"
+    q_best = 0
+    for i in range(n_threshold):
+        q = q_list[i]
+        print("Testing with q = {}".format(q))
+        temp_thres = KQp(recon_loss, q)
+        idx_detection = return_anomaly_idx_by_threshold(recon_loss, temp_thres)
         idx_detection_augmented = augment_detected_idx(
             idx_detection, anomaly_index)
-        precision_aug[i], recall_aug[i], F1_aug[i], fpr_aug[i], _, _, _ = compute_precision_and_recall(idx_detection_augmented,
-                                                                                                       test_labels)
-        i = i + 1
-        # print(precision, recall, F1)
+        precision_aug[i], recall_aug[i], F1_aug[i], fpr_aug[i], _, _, _ = compute_precision_and_recall(idx_detection_augmented, test_labels)
+        print("At this threshold, precision is {}, recall is {}, F1 is {}".format(precision_aug[i],
+                                                                        recall_aug[i],
+                                                                        F1_aug[i]))
 
-    auc = plot_roc_curve(fpr_aug, recall_aug, config)
-
-    print("\nAugmented detection:")
-    print("Best F1 score is {}".format(np.amax(F1_aug)))
-    idx_best_threshold = np.squeeze(np.argwhere(F1_aug == np.amax(F1_aug)))
-    print("Best threshold is {}".format(threshold_list[idx_best_threshold]))
-    best_thres = np.min(threshold_list[idx_best_threshold])
-    print("At this threshold, precision is {}, recall is {}".format(precision_aug[idx_best_threshold],
-                                                                    recall_aug[idx_best_threshold]))
-    return best_thres, auc
-
-
-def select_KQp_threshold(threshold, recon_loss):
-    q_list = [0.99, 0.9, 0.1]
-    temp = math.inf
-    q_best = 0
-    for q in q_list:
-        temp_thres = KQp(recon_loss, q)
-        # print(temp_thres,abs(temp_thres - threshold))
-        if abs(temp_thres - threshold) < temp:
-            temp = abs(temp_thres - threshold)
-            q_best = q
-            KQp_thres = temp_thres
-    print("Closest KQp threshold is {} at q = {}".format(KQp_thres, q_best))
-    return KQp_thres, q_best
+    print("Best F1 score is {}".format(max(F1_aug)))
+    idx_best_q = np.argmax(F1_aug)
+    q_best = q_list[idx_best_q]
+    print("Best q is {}".format(q_list[idx_best_q]))
+    print("At this threshold, precision is {}, recall is {}".format(precision_aug[idx_best_q],
+                                                                    recall_aug[idx_best_q]))
+    # auc = plot_roc_curve(fpr_aug, recall_aug, config)
+    return q_best, precision_aug[idx_best_q], recall_aug[idx_best_q], F1_aug[idx_best_q]
 
 
 @torch.no_grad()
@@ -215,7 +233,7 @@ def main():
     except:
         print("Missing or invalid arguments")
         exit(0)
-    testing_config_path = os.path.join("../experiments/{}/{}/{}".format("FNet-Hybrid", config["experiment"], config["auto_dataset"]), "result/")
+    testing_config_path = os.path.join("../experiments/{}/{}/{}".format(SAVE_FOLDER, config["experiment"], config["auto_dataset"]), "result/")
     try:
         config = process_config(os.path.join(testing_config_path, os.listdir(testing_config_path)[0]))
     except:
@@ -250,21 +268,14 @@ def main():
                                                config)
 
     # Now select a threshold
-    threshold, auc = select_threshold(recon_loss,
-                                      anomaly_index,
-                                      test_labels,
-                                      config)
-    config["AUC"] = auc
+    # threshold, auc = select_threshold(recon_loss,
+    #                                   anomaly_index,
+    #                                   test_labels,
+    #                                   config)
+    # config["AUC"] = auc
 
-    KQp_thres, q_best = select_KQp_threshold(threshold, recon_loss)
+    q_best, precision, recall, F1 = select_KQp_threshold(recon_loss, anomaly_index, test_labels, config)
     config["q_best"] = q_best
-    idx_detection = return_anomaly_idx_by_threshold(recon_loss, KQp_thres)
-    # print(idx_detection)
-    idx_detection_augmented = augment_detected_idx(idx_detection, anomaly_index)
-    # print(anomaly_index_lstm)
-    # print(idx_detection_augmented)
-    precision, recall, F1, _, n_TP, n_FP, n_FN = compute_precision_and_recall(idx_detection_augmented,
-                                                                              test_labels)
     config["precision"] = precision
     config["recall"] = recall
     config["F1"] = F1
@@ -274,9 +285,10 @@ def main():
     print("Precision: {}".format(precision))
     print("Recall: {}".format(recall))
     print("F1: {}".format(F1))
-    print("TP: {}".format(n_TP))
-    print("FP: {}".format(n_FP))
-    print("FN: {}".format(n_FN))
+    # print("TP: {}".format(n_TP))
+    # print("FP: {}".format(n_FP))
+    # print("FN: {}".format(n_FN))
+    return 0
 
 
 if __name__ == '__main__':
