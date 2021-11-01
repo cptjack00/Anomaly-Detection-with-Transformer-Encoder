@@ -9,6 +9,9 @@ from torch.nn.modules.normalization import LayerNorm
 
 """ This code is a slightly modified version of The Annotated Transformer."""
 
+device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+if device.type == "cuda" and not torch.cuda.is_initialized():
+    torch.cuda.init()
 
 class TransformerModel(nn.Module):
     def __init__(self, encoder, src_embed, linear):
@@ -82,9 +85,13 @@ class TransformerEncoderLayer(nn.Module):
 
 def attention(query, key, value, mask=None, dropout=0.0):
     """Compute the Scaled Dot-Product Attention"""
+    query = query.to(device)
+    key = query.to(device)
+    value = query.to(device)
     d_k = query.size(-1)
     scores = torch.matmul(query, key.transpose(-2, -1)) / math.sqrt(d_k)
     if mask is not None:
+        mask = mask.to(device)
         scores = scores.masked_fill(mask == 0, -1e9)
     p_attn = F.softmax(scores, dim=-1)
     p_attn = F.dropout(p_attn, p=dropout)

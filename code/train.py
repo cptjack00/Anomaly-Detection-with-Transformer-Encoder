@@ -8,6 +8,8 @@ from models import make_autoencoder_model, make_fnet_hybrid_model
 from utils import create_dirs, get_args, process_config, save_config
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+if device.type == "cuda" and not torch.cuda.is_initialized():
+    torch.cuda.init()
 
 def create_dataloader(dataset, config):
     return DataLoader(dataset,
@@ -46,10 +48,10 @@ def hybrid_train_epoch(train_iter, model, autoencoder, criterion, mask, opt, epo
     batch_loss = list()
     for i, batch in enumerate(train_iter):
         src = batch["input"].float()
-        src.to(device)
+        src = src.to(device)
         src = encoder(src)
         trg = batch["target"].float()
-        trg.to(device)
+        trg = trg.to(device)
         trg = encoder(trg)
         out = model(src, src_mask=mask)
 
