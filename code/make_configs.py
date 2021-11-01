@@ -5,10 +5,10 @@ num_stacks=[6,5,4,3,2,1]
 lr=[0.01, 0.005, 0.003, 0.002, 0.001]
 data=["scada2", "scada1"]
 d_ff = [128, 64, 32]
-#auto_dims = [(200, 100), (200, 50), (100, 50), (100, 25), (150, 50), (80, 40), (150, 100), (50, 25)]
+auto_dims = [(200, 100), (200, 50), (100, 50), (100, 25), (150, 50), (80, 40), (150, 100), (50, 25)]
 batch_size = [128, 64, 32]
-#auto_dims = [(120, 40), (100, 40)]
-auto_dims = [(120, 60), (140, 70), ( 160, 80),  (180, 90)]
+# auto_dims = [(120, 40), (100, 40)]
+auto_dims.extend([(120, 60), (140, 70), ( 160, 80),  (180, 90)])
 
 
 for d in data:
@@ -36,7 +36,7 @@ for d in data:
                             "post_mask": int(auto[1] / 5 * 3),
                             "batch_size": b,
                             "shuffle": 1,
-                            "dataloader_num_workers": 10,
+                            "dataloader_num_workers": 4,
                             "auto_num_epoch": 10,
                             "trans_num_epoch": 15,
                             "load_dir": "default"

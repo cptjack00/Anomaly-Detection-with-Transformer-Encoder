@@ -3,3 +3,5 @@ pandas==1.1.5
 seaborn==0.11.1
 transformers
 matplotlib
+numba
+scipy
