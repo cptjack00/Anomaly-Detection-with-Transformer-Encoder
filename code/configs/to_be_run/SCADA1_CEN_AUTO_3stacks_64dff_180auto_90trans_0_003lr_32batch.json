@@ -14,7 +14,7 @@
     "post_mask": 54,
     "batch_size": 32,
     "shuffle": 1,
-    "dataloader_num_workers": 10,
+    "dataloader_num_workers": 4,
     "auto_num_epoch": 10,
     "trans_num_epoch": 15,
     "load_dir": "default"
