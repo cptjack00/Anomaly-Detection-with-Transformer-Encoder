@@ -294,7 +294,7 @@ class Autoencoder(nn.Module):
         return output
 
 
-def make_trans_hybrid_model(N, d_model, l_win, d_ff=0, h=8, dropout=0.1):
+def make_trans_model(N, d_model, l_win, d_ff=0, h=8, dropout=0.1):
     if (d_ff == 0):
         d_ff = d_model * 4
     c = copy.deepcopy

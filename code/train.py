@@ -4,7 +4,7 @@ import torch
 from torch.utils.data.dataloader import DataLoader
 
 from data_loader import CustomDataset
-from models import make_autoencoder_model, make_fnet_hybrid_model
+from models import make_autoencoder_model, make_trans_model
 from utils import create_dirs, get_args, process_config, save_config
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -34,12 +34,12 @@ def create_mask(config):
     return mask
 
 
-min_hybrid_loss = float("inf")
-best_hybrid_model = None
-epoch_hybrid_loss = list()
+min_vanilla_loss = float("inf")
+best_vanilla_model = None
+epoch_vanilla_loss = list()
 
-def hybrid_train_epoch(train_iter, model, autoencoder, criterion, mask, opt, epoch, config):
-    global min_hybrid_loss, best_hybrid_model, epoch_hybrid_loss
+def vanilla_train_epoch(train_iter, model, autoencoder, criterion, mask, opt, epoch, config):
+    global min_vanilla_loss, best_vanilla_model, epoch_vanilla_loss
     model.train()
     model.to(device)
     autoencoder.eval()
@@ -61,19 +61,19 @@ def hybrid_train_epoch(train_iter, model, autoencoder, criterion, mask, opt, epo
         batch_loss.append(loss.item())
 
     if len(batch_loss) > 0:
-        epoch_hybrid_loss.append(sum(batch_loss)/len(batch_loss))
-        print('hybridFORMER. Epoch: {} \tTotal Loss: {:.6f}'.format(epoch,
-                                                                          epoch_hybrid_loss[-1]))
+        epoch_vanilla_loss.append(sum(batch_loss)/len(batch_loss))
+        print('VANILLA TRANSFORMER. Epoch: {} \tTotal Loss: {:.6f}'.format(epoch,
+                                                                          epoch_vanilla_loss[-1]))
 
-    if epoch_hybrid_loss[-1] < min_hybrid_loss:
+    if epoch_vanilla_loss[-1] < min_vanilla_loss:
         torch.save(model.state_dict(),
-                   config["checkpoint_dir"] + f"best_hybrid_{epoch}.pth")
+                   config["checkpoint_dir"] + f"best_vanilla_{epoch}.pth")
         torch.save(opt.state_dict(),
-                   config["checkpoint_dir"] + f"optimizer_hybrid_{epoch}.pth")
-        min_hybrid_loss = epoch_hybrid_loss[-1]
-        best_hybrid_model = f"best_hybrid_{epoch}.pth"
-    if best_hybrid_model != None:
-        return best_hybrid_model
+                   config["checkpoint_dir"] + f"optimizer_vanilla_{epoch}.pth")
+        min_vanilla_loss = epoch_vanilla_loss[-1]
+        best_vanilla_model = f"best_vanilla_{epoch}.pth"
+    if best_vanilla_model != None:
+        return best_vanilla_model
 
 
 min_auto_loss = float("inf")
@@ -144,30 +144,30 @@ def main():
     print("COMPLETED TRAINING THE AUTOENCODER")
     config["auto_train_time"] = (time.time() - start) / 60
 
-    # Training the FNet-Hybrid model
+    # Training the model
     start = time.time()
     mask = create_mask(config)
-    fnet_hybrid_model = make_fnet_hybrid_model(N=config["num_stacks"],
+    vanilla_model = make_trans_model(N=config["num_stacks"],
                                          d_model=config["d_model"],
                                          l_win=config["l_win"],
                                          d_ff=config["d_ff"],
                                          h=config["num_heads"],
                                          dropout=config["dropout"])
-    fnet_hybrid_model.float()
-    model_opt = torch.optim.Adam(fnet_hybrid_model.parameters())
+    vanilla_model.float()
+    model_opt = torch.optim.Adam(vanilla_model.parameters())
     autoencoder_model.load_state_dict(
         torch.load(config["checkpoint_dir"] + config["best_auto_model"]))
     for epoch in range(config["trans_num_epoch"]):
-        config["best_hybrid_model"] = hybrid_train_epoch(dataloader,
-                                                       fnet_hybrid_model,
+        config["best_vanilla_model"] = vanilla_train_epoch(dataloader,
+                                                       vanilla_model,
                                                        autoencoder_model,
                                                        criterion,
                                                        mask,
                                                        model_opt,
                                                        epoch,
                                                        config)
-    print("COMPLETED TRAINING THE FNET-HYBRID")
-    config["hybrid_train_time"] = (time.time() - start) / 60
+    print("COMPLETED TRAINING THE VANILLA TRANSFORMER")
+    config["vanilla_train_time"] = (time.time() - start) / 60
     save_config(config)
 
 if __name__ == "__main__":

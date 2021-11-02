@@ -2,7 +2,7 @@ import argparse
 import json
 import os
 
-SAVE_FOLDER="FNet-Hybrid-GPU"
+SAVE_FOLDER="Vanilla Transformer"
 
 def get_config_from_json(json_file):
     """

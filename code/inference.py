@@ -3,7 +3,6 @@ import time
 import os
 
 import matplotlib.pyplot as plt
-from numba.np.ufunc import parallel
 import numpy as np
 import torch
 from scipy.stats import norm
@@ -11,7 +10,7 @@ from sklearn import metrics
 from numba import jit
 
 from data_loader import CustomDataset
-from models import make_autoencoder_model, make_fnet_hybrid_model
+from models import make_autoencoder_model, make_trans_model
 from train import create_dataloader, create_mask
 from utils import SAVE_FOLDER, get_args, process_config, save_config
 
@@ -26,18 +25,18 @@ def load_model(config):
     autoencoder_model.float()
     autoencoder_model.eval()
 
-    hybrid_model = make_fnet_hybrid_model(N=config["num_stacks"],
+    vanilla_model = make_trans_model(N=config["num_stacks"],
                                          d_model=config["d_model"],
                                          l_win=config["l_win"],
                                          d_ff=config["d_ff"],
                                          h=config["num_heads"],
                                          dropout=config["dropout"])
-    hybrid_model.load_state_dict(torch.load(
-        config["checkpoint_dir"] + config["best_hybrid_model"]))
-    hybrid_model.float()
-    hybrid_model.eval()
+    vanilla_model.load_state_dict(torch.load(
+        config["checkpoint_dir"] + config["best_vanilla_model"]))
+    vanilla_model.float()
+    vanilla_model.eval()
 
-    return autoencoder_model.encoder, hybrid_model
+    return autoencoder_model.encoder, vanilla_model
 
 
 def create_labels(idx_anomaly_test, n_test, config):
@@ -240,9 +239,9 @@ def main():
         print("NO CONFIG OR HAS NOT BEEN TRAINED YET!!!")
     dataset = CustomDataset(config, train=False)
     data_loader = create_dataloader(dataset, config)
-    encoder, hybrid_model = load_model(config)
+    encoder, vanilla_model = load_model(config)
     encoder.to(device)
-    hybrid_model.to(device)
+    vanilla_model.to(device)
     mask = create_mask(config)
     loss = torch.nn.MSELoss()
     n_test = len(dataset)
@@ -254,7 +253,7 @@ def main():
         src = encoder(src)
         trg = batch["target"].float().to(device)
         trg = encoder(trg)
-        out = hybrid_model(src, src_mask=mask)
+        out = vanilla_model(src, src_mask=mask)
         for j in range(config["batch_size"]):
             try:
                 recon_loss[i * config["batch_size"] + j] = loss(
