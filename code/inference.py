@@ -15,6 +15,8 @@ from models import make_autoencoder_model, make_fnet_hybrid_model
 from train import create_dataloader, create_mask
 from utils import SAVE_FOLDER, get_args, process_config, save_config
 
+torch.manual_seed(0)
+np.random.seed(0)
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 def load_model(config):
