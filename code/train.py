@@ -7,6 +7,7 @@ from data_loader import CustomDataset
 from models import make_autoencoder_model, make_trans_model
 from utils import create_dirs, get_args, process_config, save_config
 
+torch.manual_seed(0)
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 if device.type == "cuda" and not torch.cuda.is_initialized():
     torch.cuda.init()

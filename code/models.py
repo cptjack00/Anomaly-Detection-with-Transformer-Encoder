@@ -9,6 +9,7 @@ from torch.nn.modules.normalization import LayerNorm
 
 """ This code is a slightly modified version of The Annotated Transformer."""
 
+torch.manual_seed(0)
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 if device.type == "cuda" and not torch.cuda.is_initialized():
     torch.cuda.init()
