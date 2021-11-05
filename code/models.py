@@ -232,7 +232,6 @@ class Encoder(nn.Module):
         self.d_model = d_model
         self.input_dims = self.in_seq_len * self.d_model
         self.output_dims = self.out_seq_len * self.d_model
-        self.dims_1 = (self.input_dims - self.output_dims) // 4 * 3
         self.dims_2 = (self.input_dims - self.output_dims) // 4 * 2
 
         linear1 = nn.Linear(self.input_dims, self.dims_1)
@@ -295,7 +294,7 @@ class Autoencoder(nn.Module):
         return output
 
 
-def make_trans_hybrid_model(N, d_model, l_win, d_ff=0, h=8, dropout=0.1):
+def make_trans_model(N, d_model, l_win, d_ff=0, h=8, dropout=0.1):
     if (d_ff == 0):
         d_ff = d_model * 4
     c = copy.deepcopy
