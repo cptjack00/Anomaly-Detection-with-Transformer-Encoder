@@ -232,6 +232,7 @@ class Encoder(nn.Module):
         self.d_model = d_model
         self.input_dims = self.in_seq_len * self.d_model
         self.output_dims = self.out_seq_len * self.d_model
+        self.dims_1 = (self.input_dims - self.output_dims) // 4 * 3
         self.dims_2 = (self.input_dims - self.output_dims) // 4 * 2
 
         linear1 = nn.Linear(self.input_dims, self.dims_1)
