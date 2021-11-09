@@ -17,17 +17,18 @@
     "dataloader_num_workers": 4,
     "auto_num_epoch": 10,
     "trans_num_epoch": 15,
+    "lr": 0.001,
     "load_dir": "default",
     "summary_dir": "../experiments/FNet-Hybrid-GPU/SCADA1_CEN_AUTO_3stacks_128dff_200auto_50trans_0_001lr_64batch/scada1/summary/",
     "result_dir": "../experiments/FNet-Hybrid-GPU/SCADA1_CEN_AUTO_3stacks_128dff_200auto_50trans_0_001lr_64batch/scada1/result/",
     "checkpoint_dir": "../experiments/FNet-Hybrid-GPU/SCADA1_CEN_AUTO_3stacks_128dff_200auto_50trans_0_001lr_64batch/scada1/checkpoints/",
     "best_auto_model": "best_autoencoder_8.pth",
-    "auto_train_time": 6.303574275970459,
+    "auto_train_time": 6.323458937803904,
     "best_hybrid_model": "best_hybrid_14.pth",
-    "hybrid_train_time": 8.075275222460428,
+    "hybrid_train_time": 8.04469808737437,
     "q_best": 0.1,
     "precision": 0.9433713204558455,
     "recall": 0.9999067251189254,
     "F1": 0.9708166361022437,
-    "inference_time": 1.6103792270024617
+    "inference_time": 1.6174060344696044
 }

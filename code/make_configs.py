@@ -1,14 +1,15 @@
 import json
 import os
 
-num_stacks=[6,5,4,3,2,1]
+# num_stacks=[6,5,4,3,2,1]
+num_stacks=[2,3]
 lr=[0.01, 0.005, 0.003, 0.002, 0.001]
 data=["scada2", "scada1"]
-d_ff = [128, 64, 32]
-auto_dims = [(200, 100), (200, 50), (100, 50), (100, 25), (150, 50), (80, 40), (150, 100), (50, 25)]
-batch_size = [128, 64, 32]
+d_ff = [128]
+auto_dims = [(200, 50), (200, 50), (200, 180), (200, 160), (200, 140), (200, 120), (200, 80), (200, 60)]
+batch_size = [64]
 # auto_dims = [(120, 40), (100, 40)]
-auto_dims.extend([(120, 60), (140, 70), ( 160, 80),  (180, 90)])
+# auto_dims.extend([(120, 60), (140, 70), ( 160, 80),  (180, 90)])
 
 
 for d in data:
@@ -39,6 +40,7 @@ for d in data:
                             "dataloader_num_workers": 4,
                             "auto_num_epoch": 10,
                             "trans_num_epoch": 15,
+                            "lr": l,
                             "load_dir": "default"
                         }
                         with open(config_path, 'w', encoding='utf-8') as f:

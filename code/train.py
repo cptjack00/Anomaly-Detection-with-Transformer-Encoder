@@ -133,7 +133,7 @@ def main():
                                                out_seq_len=config["l_win"],
                                                d_model=config["d_model"])
     autoencoder_model.float()
-    model_opt = torch.optim.Adam(autoencoder_model.parameters())
+    model_opt = torch.optim.Adam(autoencoder_model.parameters(), lr=config["lr"])
     criterion = torch.nn.MSELoss()
     for epoch in range(config["auto_num_epoch"]):
         config["best_auto_model"] = autoencoder_train_epoch(dataloader,
@@ -155,7 +155,7 @@ def main():
                                          h=config["num_heads"],
                                          dropout=config["dropout"])
     fnet_hybrid_model.float()
-    model_opt = torch.optim.Adam(fnet_hybrid_model.parameters())
+    model_opt = torch.optim.Adam(fnet_hybrid_model.parameters(), lr=config["lr"])
     autoencoder_model.load_state_dict(
         torch.load(config["checkpoint_dir"] + config["best_auto_model"]))
     for epoch in range(config["trans_num_epoch"]):
