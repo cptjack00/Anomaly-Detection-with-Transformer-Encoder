@@ -198,7 +198,7 @@ def plot_roc_curve(fpr_aug, recall_aug, config, n_threshold=20):
 
 
 def select_KQp_threshold(recon_loss, anomaly_index, test_labels, config):
-    q_list = [0.99, 0.9, 0.1, 0.01]
+    q_list = [0.99, 0.9, 0.1, 0.02, 0.01, 0.0095]
     n_threshold = len(q_list)
     precision_aug = np.zeros(n_threshold)
     recall_aug = np.zeros(n_threshold)
@@ -237,10 +237,14 @@ def main():
         exit(0)
     testing_config_path = os.path.join("../experiments/{}/{}/{}".format(SAVE_FOLDER, config["experiment"], config["auto_dataset"]), "result/")
     try:
-        config = process_config(os.path.join(testing_config_path, os.listdir(testing_config_path)[0]))
+        for file in os.listdir(testing_config_path):
+            if 'json' in file:
+                config = process_config(os.path.join(testing_config_path, file))
     except:
         print("NO CONFIG OR HAS NOT BEEN TRAINED YET!!!")
-    dataset = CustomDataset(config, train=False)
+    print(testing_config_path)
+    print(os.listdir(testing_config_path))
+    dataset = CustomDataset(config, mode='test')
     data_loader = create_dataloader(dataset, config)
     encoder, hybrid_model = load_model(config)
     encoder.to(device)

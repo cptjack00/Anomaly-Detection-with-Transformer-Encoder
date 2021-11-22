@@ -1,0 +1,21 @@
+{
+    "experiment": "ECG_8_CEN_AUTO_2stacks_128dff_100auto_80trans_0_01lr_64batch",
+    "data_dir": "NAB-known-anomaly",
+    "auto_dataset": "ecg_8",
+    "num_stacks": 2,
+    "d_model": 2,
+    "d_ff": 128,
+    "num_heads": 1,
+    "dropout": 0.1,
+    "autoencoder_dims": 100,
+    "l_win": 80,
+    "pre_mask": 32,
+    "post_mask": 48,
+    "batch_size": 64,
+    "shuffle": 1,
+    "dataloader_num_workers": 4,
+    "auto_num_epoch": 50,
+    "trans_num_epoch": 50,
+    "lr": 0.01,
+    "load_dir": "default"
+}

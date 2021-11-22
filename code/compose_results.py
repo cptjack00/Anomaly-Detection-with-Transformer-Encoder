@@ -4,19 +4,21 @@ import json
 import csv
 
 csv_file = "fnet.csv"
-exps = os.listdir("../experiments/Vanilla Transformer/")
-print(exps)
+exps = os.listdir("../experiments/FNet-Hybrid-GPU/")
 count = 0
 res = []
 for exp in exps:
-    exp = os.path.join("../experiments/Vanilla Transformer/", exp)
+    exp = os.path.join("../experiments/FNet-Hybrid-GPU/", exp)
     exp = os.path.join(exp, os.listdir(exp)[0], 'result')
     listdir = os.listdir(exp)
     try:
         listdir.remove("augmentedroc.pdf")
     except:
         pass
-    filename = os.path.join(exp, listdir[0])
+    try:
+        filename = os.path.join(exp, listdir[0])
+    except:
+        pass
     try:
         with open(filename) as f:
             result = json.load(f)

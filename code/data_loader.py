@@ -3,10 +3,10 @@ from torch.utils.data import Dataset
 
 
 class CustomDataset(Dataset):
-    def __init__(self, config, train=True, model_type="autoencoder"):
+    def __init__(self, config, mode='train', model_type="autoencoder"):
         super().__init__()
         self.config = config
-        self.train = train
+        self.mode = mode
         self.model_type = model_type
         if model_type == "autoencoder":
             self.load_dataset(self.config["auto_dataset"])
@@ -17,7 +17,7 @@ class CustomDataset(Dataset):
         return self.rolling_windows.shape[0]
  
     def __getitem__(self, index):
-        if (self.train) or (self.model_type == "autoencoder"):
+        if (self.mode) or (self.model_type == "autoencoder"):
             inp = target = self.rolling_windows[index, :, :]
         else:
             inp = self.rolling_windows[index, :, :]
@@ -29,23 +29,22 @@ class CustomDataset(Dataset):
     def load_dataset(self, dataset):
         data_dir = "../data/{}/".format(self.config["data_dir"])
         self.data = np.load(data_dir + dataset + ".npz")
+        if self.mode == 'train':
+            data = self.data['training'][:int(len(self.data['training']) * 0.9), :]
+            print("TRAINING DATA SHAPE: {}".format(data.shape))
+        elif self.mode == 'valid':
+            data = self.data['training'][int(len(self.data['training']) * 0.9):, :]
+            print("VALIDATION DATA SHAPE: {}".format(data.shape))
+        else:
+            data = self.data['test']
+            print("TEST DATA SHAPE: {}".format(data.shape))
 
         # slice training set into rolling windows
         if self.model_type == "autoencoder":
-            if self.train:
-                self.rolling_windows = np.lib.stride_tricks.sliding_window_view(
-                    self.data["training"], self.config["autoencoder_dims"], axis=0, writeable=True
-                ).transpose(0, 2, 1)
-            else:
-                self.rolling_windows = np.lib.stride_tricks.sliding_window_view(
-                    self.data["test"], self.config["autoencoder_dims"], axis=0, writeable=True
-                ).transpose(0, 2, 1)
+            self.rolling_windows = np.lib.stride_tricks.sliding_window_view(
+                data, self.config["autoencoder_dims"], axis=0, writeable=True
+            ).transpose(0, 2, 1)
         else:
-            if self.train:
-                self.rolling_windows = np.lib.stride_tricks.sliding_window_view(
-                    self.data["training"], self.config["l_win"], axis=0, writeable=True
-                ).transpose(0, 2, 1)
-            else:
-                self.rolling_windows = np.lib.stride_tricks.sliding_window_view(
-                    self.data["test"], self.config["l_win"], axis=0, writeable=True
-                ).transpose(0, 2, 1)
+            self.rolling_windows = np.lib.stride_tricks.sliding_window_view(
+                data, self.config["l_win"], axis=0, writeable=True
+            ).transpose(0, 2, 1)
