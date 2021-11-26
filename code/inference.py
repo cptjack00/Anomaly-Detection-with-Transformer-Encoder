@@ -265,6 +265,8 @@ def main():
             try:
                 recon_loss[i * config["batch_size"] + j] = loss(
                     out[j, config["pre_mask"]:config["post_mask"], :], trg[j, config["pre_mask"]:config["post_mask"], :])
+                # recon_loss[i * config["batch_size"] + j] = loss(
+                #         out[j, :, :], trg[j, :, :])
             except:
                 pass
 

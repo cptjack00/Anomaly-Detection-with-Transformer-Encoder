@@ -29,14 +29,26 @@ class CustomDataset(Dataset):
     def load_dataset(self, dataset):
         data_dir = "../data/{}/".format(self.config["data_dir"])
         self.data = np.load(data_dir + dataset + ".npz")
+
         if self.mode == 'train':
-            data = self.data['training'][:int(len(self.data['training']) * 0.9), :]
+            if len(self.data['training'].shape) == 1:
+                data = np.expand_dims(self.data['training'], -1)
+            else:
+                data = self.data['training']
+            data = data[:int(data.shape[0] * 0.9), :]
             print("TRAINING DATA SHAPE: {}".format(data.shape))
         elif self.mode == 'valid':
-            data = self.data['training'][int(len(self.data['training']) * 0.9):, :]
+            if len(self.data['training'].shape) == 1:
+                data = np.expand_dims(self.data['training'], -1)
+            else:
+                data = self.data['training']
+            data = data[int(data.shape[0] * 0.9):, :]
             print("VALIDATION DATA SHAPE: {}".format(data.shape))
         else:
-            data = self.data['test']
+            if len(self.data['training'].shape) == 1:
+                data = np.expand_dims(self.data['test'], -1)
+            else:
+                data = self.data['test']
             print("TEST DATA SHAPE: {}".format(data.shape))
 
         # slice training set into rolling windows

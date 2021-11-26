@@ -22,8 +22,8 @@ def plot_loss(loss_train, loss_val, epochs, model, config):
     plt.xlabel('Epochs')
     plt.ylabel('Loss')
     plt.legend()
-    plt.show()
     plt.savefig(os.path.join(config["result_dir"], model))
+    plt.close()
 
 
 def create_dataloader(dataset, config):
@@ -54,7 +54,6 @@ def hybrid_train(train_iter, val_iter, model, autoencoder, criterion, mask, opt,
     min_hybrid_loss = float("inf")
     best_hybrid_model = None
     best_hybrid_optimizer = None
-    best_hybrid_epoch = 0
     model.train()
     model.to(device)
     autoencoder.eval()
@@ -88,9 +87,7 @@ def hybrid_train(train_iter, val_iter, model, autoencoder, criterion, mask, opt,
             trg = trg.to(device)
             trg = encoder(trg)
             out = model(src, src_mask=mask)
-            opt.zero_grad()
-            loss = loss_backprop(criterion, out, trg)
-            opt.step()
+            loss = criterion(out, trg)
             val_loss += loss.item()
             
         train_loss = train_loss / len(train_iter)
@@ -103,7 +100,7 @@ def hybrid_train(train_iter, val_iter, model, autoencoder, criterion, mask, opt,
         if val_loss < min_hybrid_loss:
             best_hybrid_model = model.state_dict()
             best_hybrid_optimizer = opt.state_dict()
-            best_hybrid_epoch = epoch
+            min_hybrid_loss = val_loss
     plot_loss(train_loss_list, val_loss_list, range(1, num_epochs + 1), trans_var, config)
     torch.save(best_hybrid_model,
                config["checkpoint_dir"] + f"best_hybrid.pth")
@@ -114,7 +111,6 @@ def hybrid_train(train_iter, val_iter, model, autoencoder, criterion, mask, opt,
 
 def autoencoder_train(train_iter, val_iter, model, criterion, opt, num_epochs, config):
     min_auto_loss = float("inf")
-    best_auto_epoch = 0
     best_auto_model = None
     best_auto_optimizer = None
     model.train()
@@ -143,9 +139,7 @@ def autoencoder_train(train_iter, val_iter, model, criterion, opt, num_epochs, c
             trg = batch["target"].float()
             trg = trg.to(device)
             out = model(src)
-            opt.zero_grad()
-            loss = loss_backprop(criterion, out, trg)
-            opt.step()
+            loss = criterion(out, trg)
             val_loss += loss.item()
         train_loss = train_loss / len(train_iter)
         val_loss = val_loss / len(val_iter)
@@ -155,6 +149,7 @@ def autoencoder_train(train_iter, val_iter, model, criterion, opt, num_epochs, c
         print('AUTOENCODER. Epoch: {} | Validation Loss: {:.6f}'.format(epoch, val_loss))
 
         if val_loss < min_auto_loss:
+            min_auto_loss = val_loss
             best_auto_model = model.state_dict()
             best_auto_optimizer = opt.state_dict()
     plot_loss(train_loss_list, val_loss_list, range(1, num_epochs + 1), "AUTOENCODER", config)
