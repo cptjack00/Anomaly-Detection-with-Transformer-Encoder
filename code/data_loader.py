@@ -17,7 +17,7 @@ class CustomDataset(Dataset):
         return self.rolling_windows.shape[0]
  
     def __getitem__(self, index):
-        if (self.mode) or (self.model_type == "autoencoder"):
+        if (self.mode != 'train') or (self.model_type == "autoencoder"):
             inp = target = self.rolling_windows[index, :, :]
         else:
             inp = self.rolling_windows[index, :, :]
@@ -45,7 +45,7 @@ class CustomDataset(Dataset):
             data = data[int(data.shape[0] * 0.9):, :]
             print("VALIDATION DATA SHAPE: {}".format(data.shape))
         else:
-            if len(self.data['training'].shape) == 1:
+            if len(self.data['test'].shape) == 1:
                 data = np.expand_dims(self.data['test'], -1)
             else:
                 data = self.data['test']
