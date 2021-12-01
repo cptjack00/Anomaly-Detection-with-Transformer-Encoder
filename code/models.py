@@ -158,7 +158,7 @@ class PositionalEncoding(nn.Module):
         try:
             pe[:, 1::2] = torch.cos(position * div_term)
         except:
-            div_term = torch.exp(torch.arange(1, d_model, 2)
+            div_term = torch.exp(torch.arange(0, d_model - 1, 2)
                                  * (-math.log(10000.0) / d_model))
             pe[:, 1::2] = torch.cos(position * div_term)
 
